@@ -3,35 +3,22 @@ pragma solidity 0.8.12;
 
 interface ILRTDepositPool {
     //errors
-    error CallerNotAdmin();
-    error CallerNotManager();
     error AssetNotSupported();
     error TokenTransferFailed();
-    error AssetAlreadySupported();
     error NotEnoughAssetToDeposit();
     error NotEnoughAssetToTransfer();
     error MaximumDepositLimitReached();
-    error MaximumCountOfNodeDelegateReached();
+    error MaximumCountOfNodeDelegatorReached();
 
     //events
-    event AddedNewSupportedAsset(address asset, uint256 depositLimit);
-    event UpdatedStaderConfig(address staderConfig);
-    event AssetMaxDepositLimitUpdated(
-        address asset,
-        uint256 assetMaxDepositLimit
-    );
-    event MaxNodeDelegateCountUpdated(uint16 maxNodeDelegateCount);
-    event AddedNodeDelegate(address nodeDelegatorContract);
+    event UpdatedLRTConfig(address lrtConfig);
+    event MaxNodeDelegatorCountUpdated(uint16 maxNodeDelegatorCount);
+    event AddedNodeDelegator(address nodeDelegatorContract);
     event DepositedAsset(
         address asset,
         uint256 amountOfAsset,
         uint256 amountToSend
     );
-
-    function addNewSupportedAsset(
-        address _asset,
-        uint256 _depositLimit
-    ) external;
 
     function addNodeDelegatorContract(
         address[] calldata _nodeDelegatorContract
@@ -45,16 +32,17 @@ interface ILRTDepositPool {
         uint256 _amount
     ) external;
 
-    function updateMaxNodeDelegateCount(uint16 _maxNodeDelegateCount) external;
-
-    function updateAssetMaxDepositLimit(
-        address _asset,
-        uint256 _assetMaxDepositLimit
+    function updateMaxNodeDelegatorCount(
+        uint16 _maxNodeDelegatorCount
     ) external;
 
-    function updateStaderConfig(address _staderConfig) external;
+    function updateLRTConfig(address _lrtConfig) external;
 
-    function getExchangeRate(address _asset) external;
+    function getExchangeRate(address _asset) external returns (uint256);
+
+    function nodeDelegatorQueue(uint256 idx) external returns (address);
+
+    function getNDCsLength() external returns (uint256);
 
     function getTotalAssetsWithEigenLayer(
         address _asset

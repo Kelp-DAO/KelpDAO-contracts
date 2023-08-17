@@ -1,8 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.12;
 
-import "./rsETH.sol";
+import "./RSETH.sol";
 import "./UtilLib.sol";
+
+import "./interfaces/ILRTOracle.sol";
+import "./interfaces/INodeDelegator.sol";
 import "./interfaces/ILRTDepositPool.sol";
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -16,56 +19,36 @@ contract LRTDepositPool is
     PausableUpgradeable,
     ReentrancyGuardUpgradeable
 {
-    IStaderConfig public staderConfig;
-    uint16 public maxNodeDelegateCount;
+    ILRTConfig public lrtConfig;
+    uint16 public maxNodeDelegatorCount;
 
-    address[] public nodeDelegatorQueue;
-    mapping(address => bool) public supportedAssetList;
+    address[] public override nodeDelegatorQueue;
     mapping(address => uint256) public totalAssetDeposits;
-    mapping(address => uint256) public depositLimitByAsset;
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
         _disableInitializers();
     }
 
-    function initialize(address _staderConfig) external initializer {
-        UtilLib.checkNonZeroAddress(_staderConfig);
+    function initialize(address _lrtConfig) external initializer {
+        UtilLib.checkNonZeroAddress(_lrtConfig);
         __Pausable_init();
         __AccessControl_init();
         __ReentrancyGuard_init();
-        maxNodeDelegateCount = 10;
-        staderConfig = IStaderConfig(_staderConfig);
-        supportedAssetList[staderConfig.getCBETHToken()] = true;
-        supportedAssetList[staderConfig.getRETHToken()] = true;
-        supportedAssetList[staderConfig.getSTETHToken()] = true;
-        depositLimitByAsset[staderConfig.getCBETHToken()] = 100_000;
-        depositLimitByAsset[staderConfig.getRETHToken()] = 100_000;
-        depositLimitByAsset[staderConfig.getSTETHToken()] = 100_000;
-    }
-
-    function addNewSupportedAsset(
-        address _asset,
-        uint256 _depositLimit
-    ) external onlyManager {
-        UtilLib.checkNonZeroAddress(_asset);
-        if (supportedAssetList[_asset]) {
-            revert AssetAlreadySupported();
-        }
-        supportedAssetList[_asset] = true;
-        depositLimitByAsset[_asset] = _depositLimit;
-        emit AddedNewSupportedAsset(_asset, _depositLimit);
+        maxNodeDelegatorCount = 10;
+        lrtConfig = ILRTConfig(_lrtConfig);
     }
 
     function addNodeDelegatorContract(
         address[] calldata _nodeDelegatorContract
-    ) external onlyAdmin {
+    ) external {
+        lrtConfig.onlyAdminRole(msg.sender);
         for (uint16 i; i < _nodeDelegatorContract.length; i++) {
-            if (nodeDelegatorQueue.length >= maxNodeDelegateCount) {
-                revert MaximumCountOfNodeDelegateReached();
+            if (nodeDelegatorQueue.length >= maxNodeDelegatorCount) {
+                revert MaximumCountOfNodeDelegatorReached();
             }
             nodeDelegatorQueue.push(_nodeDelegatorContract[i]);
-            emit AddedNodeDelegate(_nodeDelegatorContract[i]);
+            emit AddedNodeDelegator(_nodeDelegatorContract[i]);
         }
     }
 
@@ -77,7 +60,8 @@ contract LRTDepositPool is
             revert NotEnoughAssetToDeposit();
         }
         if (
-            totalAssetDeposits[_asset] + _amount > depositLimitByAsset[_asset]
+            totalAssetDeposits[_asset] + _amount >
+            lrtConfig.depositLimitByAsset(_asset)
         ) {
             revert MaximumDepositLimitReached();
         }
@@ -85,11 +69,10 @@ contract LRTDepositPool is
             revert TokenTransferFailed();
         }
         totalAssetDeposits[_asset] += _amount;
-        //TODO sanjay fetch from staderOracle
-        uint256 amountToSend = (
-            _amount /* *getAssetPrice())/getrsETHTokenPrice()*/
-        );
-        rsETH(staderConfig.getRSETHToken()).mint(msg.sender, amountToSend);
+        ILRTOracle lrtOracle = ILRTOracle(lrtConfig.getLRTOracle());
+        uint256 amountToSend = (_amount * lrtOracle.assetER(_asset)) /
+            lrtOracle.assetER(lrtConfig.getRSETHToken());
+        RSETH(lrtConfig.getRSETHToken()).mint(msg.sender, amountToSend);
         emit DepositedAsset(_asset, _amount, amountToSend);
     }
 
@@ -97,7 +80,8 @@ contract LRTDepositPool is
         uint16 _ndcIndex,
         address _asset,
         uint256 _amount
-    ) external nonReentrant onlySupportedAsset(_asset) onlyManager {
+    ) external nonReentrant onlySupportedAsset(_asset) {
+        lrtConfig.onlyManagerRole(msg.sender);
         UtilLib.checkNonZeroAddress(_asset);
         address nodeDelegator = nodeDelegatorQueue[_ndcIndex];
         UtilLib.checkNonZeroAddress(nodeDelegator);
@@ -106,32 +90,27 @@ contract LRTDepositPool is
         }
     }
 
-    function updateMaxNodeDelegateCount(
-        uint16 _maxNodeDelegateCount
-    ) external onlyAdmin {
-        maxNodeDelegateCount = _maxNodeDelegateCount;
-        emit MaxNodeDelegateCountUpdated(maxNodeDelegateCount);
+    function updateMaxNodeDelegatorCount(
+        uint16 _maxNodeDelegatorCount
+    ) external {
+        lrtConfig.onlyAdminRole(msg.sender);
+        maxNodeDelegatorCount = _maxNodeDelegatorCount;
+        emit MaxNodeDelegatorCountUpdated(maxNodeDelegatorCount);
     }
 
-    function updateAssetMaxDepositLimit(
-        address _asset,
-        uint256 _assetMaxDepositLimit
-    ) external onlyManager onlySupportedAsset(_asset) {
-        depositLimitByAsset[_asset] = _assetMaxDepositLimit;
-        emit AssetMaxDepositLimitUpdated(_asset, _assetMaxDepositLimit);
-    }
-
-    function updateStaderConfig(address _staderConfig) external onlyAdmin {
-        UtilLib.checkNonZeroAddress(_staderConfig);
-        staderConfig = IStaderConfig(_staderConfig);
-        emit UpdatedStaderConfig(_staderConfig);
+    function updateLRTConfig(address _lrtConfig) external {
+        lrtConfig.onlyAdminRole(msg.sender);
+        UtilLib.checkNonZeroAddress(_lrtConfig);
+        lrtConfig = ILRTConfig(_lrtConfig);
+        emit UpdatedLRTConfig(_lrtConfig);
     }
 
     /**
      * @dev Triggers stopped state.
      * Contract must not be paused.
      */
-    function pause() external onlyManager {
+    function pause() external {
+        lrtConfig.onlyManagerRole(msg.sender);
         _pause();
     }
 
@@ -139,13 +118,22 @@ contract LRTDepositPool is
      * @dev Returns to normal state.
      * Contract must be paused
      */
-    function unpause() external onlyAdmin {
+    function unpause() external {
+        lrtConfig.onlyAdminRole(msg.sender);
         _unpause();
     }
 
-    function getExchangeRate(address _asset) external {
-        //TODO sanjay fetch from staderOracle
-        //return getAssetPrice(_asset)/getrsETHTokenPrice()
+    function getNDCsLength() external view returns (uint256) {
+        return nodeDelegatorQueue.length;
+    }
+
+    function getExchangeRate(
+        address _asset
+    ) external onlySupportedAsset(_asset) returns (uint256) {
+        ILRTOracle lrtOracle = ILRTOracle(lrtConfig.getLRTOracle());
+        return
+            (lrtOracle.assetER(lrtConfig.getRSETHToken()) * 1e18) /
+            lrtOracle.assetER(_asset);
     }
 
     function getTotalAssetsWithEigenLayer(
@@ -153,8 +141,8 @@ contract LRTDepositPool is
     ) external view onlySupportedAsset(_asset) returns (uint256) {
         uint256 totalAssetWithEigenLayer;
         for (uint16 i; i <= nodeDelegatorQueue.length; ) {
-            //TODO sanjay fetch from Node Delegate contract
-            //totalAssetWithEigenLayer += INodeDelegate(nodeDelegatorQueue[i]).getBalanceOfAssetInEigenLayer(_asset)
+            totalAssetWithEigenLayer += INodeDelegator(nodeDelegatorQueue[i])
+                .getAssetBalance(_asset);
             unchecked {
                 ++i;
             }
@@ -163,24 +151,8 @@ contract LRTDepositPool is
     }
 
     modifier onlySupportedAsset(address _asset) {
-        if (!supportedAssetList[_asset]) {
+        if (!lrtConfig.supportedAssetList(_asset)) {
             revert AssetNotSupported();
-        }
-        _;
-    }
-
-    //checks for Admin role in staderConfig
-    modifier onlyAdmin() {
-        if (!staderConfig.onlyAdminRole(msg.sender)) {
-            revert CallerNotAdmin();
-        }
-        _;
-    }
-
-    //checks for Manager role in staderConfig
-    modifier onlyManager() {
-        if (!staderConfig.onlyManagerRole(msg.sender)) {
-            revert CallerNotManager();
         }
         _;
     }

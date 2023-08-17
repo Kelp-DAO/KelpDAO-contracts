@@ -13,17 +13,15 @@ import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
  * @notice The ERC20 contract for the rsETH token
  */
 
-contract rsETH is
+contract RSETH is
     Initializable,
     ERC20Upgradeable,
     PausableUpgradeable,
     AccessControlUpgradeable
 {
-    error CallerNotAdmin();
-    error CallerNotManager();
-    event UpdatedStaderConfig(address indexed _staderConfig);
+    event UpdatedLRTConfig(address indexed _lrtConfig);
 
-    IStaderConfig public staderConfig;
+    ILRTConfig public lrtConfig;
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
     bytes32 public constant BURNER_ROLE = keccak256("BURNER_ROLE");
 
@@ -32,13 +30,13 @@ contract rsETH is
         _disableInitializers();
     }
 
-    function initialize(address _staderConfig) external initializer {
-        UtilLib.checkNonZeroAddress(_staderConfig);
+    function initialize(address _lrtConfig) external initializer {
+        UtilLib.checkNonZeroAddress(_lrtConfig);
 
         __ERC20_init("rsETH", "rsETH");
         __Pausable_init();
         __AccessControl_init();
-        staderConfig = IStaderConfig(_staderConfig);
+        lrtConfig = ILRTConfig(_lrtConfig);
     }
 
     /**
@@ -69,7 +67,8 @@ contract rsETH is
      * @dev Triggers stopped state.
      * Contract must not be paused.
      */
-    function pause() external onlyManager {
+    function pause() external {
+        lrtConfig.onlyManagerRole(msg.sender);
         _pause();
     }
 
@@ -77,29 +76,15 @@ contract rsETH is
      * @dev Returns to normal state.
      * Contract must be paused
      */
-    function unpause() external onlyAdmin {
+    function unpause() external {
+        lrtConfig.onlyAdminRole(msg.sender);
         _unpause();
     }
 
-    function updateStaderConfig(address _staderConfig) external onlyAdmin {
-        UtilLib.checkNonZeroAddress(_staderConfig);
-        staderConfig = IStaderConfig(_staderConfig);
-        emit UpdatedStaderConfig(_staderConfig);
-    }
-
-    //checks for Admin role in staderConfig
-    modifier onlyAdmin() {
-        if (!staderConfig.onlyAdminRole(msg.sender)) {
-            revert CallerNotAdmin();
-        }
-        _;
-    }
-
-    //checks for Manager role in staderConfig
-    modifier onlyManager() {
-        if (!staderConfig.onlyManagerRole(msg.sender)) {
-            revert CallerNotManager();
-        }
-        _;
+    function updateLRTConfig(address _lrtConfig) external {
+        lrtConfig.onlyAdminRole(msg.sender);
+        UtilLib.checkNonZeroAddress(_lrtConfig);
+        lrtConfig = ILRTConfig(_lrtConfig);
+        emit UpdatedLRTConfig(_lrtConfig);
     }
 }
