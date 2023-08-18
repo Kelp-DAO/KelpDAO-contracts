@@ -129,18 +129,18 @@ contract LRTDepositPool is
 
     function getExchangeRate(
         address _asset
-    ) external onlySupportedAsset(_asset) returns (uint256) {
+    ) external view returns (uint256) {
         ILRTOracle lrtOracle = ILRTOracle(lrtConfig.getLRTOracle());
-        return
-            (lrtOracle.assetER(lrtConfig.getRSETHToken()) * 1e18) /
-            lrtOracle.assetER(_asset);
+        return 
+           (lrtOracle.assetER(lrtConfig.getRSETHToken()) * 1e18) /
+           lrtOracle.assetER(_asset);
     }
 
     function getTotalAssetsWithEigenLayer(
         address _asset
     ) external view onlySupportedAsset(_asset) returns (uint256) {
         uint256 totalAssetWithEigenLayer;
-        for (uint16 i; i <= nodeDelegatorQueue.length; ) {
+        for (uint16 i; i < nodeDelegatorQueue.length; ) {
             totalAssetWithEigenLayer += INodeDelegator(nodeDelegatorQueue[i])
                 .getAssetBalance(_asset);
             unchecked {

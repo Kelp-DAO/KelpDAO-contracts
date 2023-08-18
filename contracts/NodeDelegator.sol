@@ -88,7 +88,7 @@ contract NodeDelegator is INodeDelegator, PausableUpgradeable {
         address asset
     ) external view override returns (uint256) {
         address strategy = lrtConfig.assetStrategy(asset);
-        return IStrategy(strategy).userUnderlyingView(strategy);
+        return IStrategy(strategy).userUnderlyingView(address(this));
     }
 
     /**

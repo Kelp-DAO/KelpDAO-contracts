@@ -7,5 +7,5 @@ interface ILRTOracle {
 
     // methods
 
-    function assetER(address asset) external returns (uint256);
+    function assetER(address asset) external view returns (uint256);
 }

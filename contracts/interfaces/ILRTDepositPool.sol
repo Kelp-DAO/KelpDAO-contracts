@@ -38,11 +38,11 @@ interface ILRTDepositPool {
 
     function updateLRTConfig(address _lrtConfig) external;
 
-    function getExchangeRate(address _asset) external returns (uint256);
+    function getExchangeRate(address _asset) external view returns (uint256);
 
-    function nodeDelegatorQueue(uint256 idx) external returns (address);
+    function nodeDelegatorQueue(uint256 idx) external view returns (address);
 
-    function getNDCsLength() external returns (uint256);
+    function getNDCsLength() external view returns (uint256);
 
     function getTotalAssetsWithEigenLayer(
         address _asset

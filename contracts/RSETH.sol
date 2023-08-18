@@ -30,13 +30,14 @@ contract RSETH is
         _disableInitializers();
     }
 
-    function initialize(address _lrtConfig) external initializer {
+    function initialize(address _admin, address _lrtConfig) external initializer {
         UtilLib.checkNonZeroAddress(_lrtConfig);
 
         __ERC20_init("rsETH", "rsETH");
         __Pausable_init();
         __AccessControl_init();
         lrtConfig = ILRTConfig(_lrtConfig);
+        _grantRole(DEFAULT_ADMIN_ROLE, _admin);
     }
 
     /**
@@ -76,13 +77,11 @@ contract RSETH is
      * @dev Returns to normal state.
      * Contract must be paused
      */
-    function unpause() external {
-        lrtConfig.onlyAdminRole(msg.sender);
+    function unpause() external onlyRole(DEFAULT_ADMIN_ROLE){
         _unpause();
     }
 
-    function updateLRTConfig(address _lrtConfig) external {
-        lrtConfig.onlyAdminRole(msg.sender);
+    function updateLRTConfig(address _lrtConfig) external onlyRole(DEFAULT_ADMIN_ROLE){
         UtilLib.checkNonZeroAddress(_lrtConfig);
         lrtConfig = ILRTConfig(_lrtConfig);
         emit UpdatedLRTConfig(_lrtConfig);
