@@ -22,7 +22,7 @@ contract LRTDepositPool is
     ILRTConfig public lrtConfig;
     uint16 public maxNodeDelegatorCount;
 
-    address[] public override nodeDelegatorQueue;
+    address[] public nodeDelegatorQueue;
     mapping(address => uint256) public totalAssetDeposits;
 
     /// @custom:oz-upgrades-unsafe-allow constructor
@@ -123,22 +123,9 @@ contract LRTDepositPool is
         _unpause();
     }
 
-    function getNDCsLength() external view returns (uint256) {
-        return nodeDelegatorQueue.length;
-    }
-
-    function getExchangeRate(
-        address _asset
-    ) external view returns (uint256) {
-        ILRTOracle lrtOracle = ILRTOracle(lrtConfig.getLRTOracle());
-        return 
-           (lrtOracle.assetER(lrtConfig.getRSETHToken()) * 1e18) /
-           lrtOracle.assetER(_asset);
-    }
-
     function getTotalAssetsWithEigenLayer(
         address _asset
-    ) external view onlySupportedAsset(_asset) returns (uint256) {
+    ) external view override onlySupportedAsset(_asset) returns (uint256) {
         uint256 totalAssetWithEigenLayer;
         for (uint16 i; i < nodeDelegatorQueue.length; ) {
             totalAssetWithEigenLayer += INodeDelegator(nodeDelegatorQueue[i])
@@ -150,8 +137,17 @@ contract LRTDepositPool is
         return totalAssetWithEigenLayer;
     }
 
+    function getNodeDelegatorQueue()
+        external
+        view
+        override
+        returns (address[] memory)
+    {
+        return nodeDelegatorQueue;
+    }
+
     modifier onlySupportedAsset(address _asset) {
-        if (!lrtConfig.supportedAssetList(_asset)) {
+        if (!lrtConfig.isSupportedAsset(_asset)) {
             revert AssetNotSupported();
         }
         _;

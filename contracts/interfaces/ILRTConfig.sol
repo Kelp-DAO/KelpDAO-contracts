@@ -61,7 +61,9 @@ interface ILRTConfig {
 
     function assetStrategy(address asset) external view returns (address);
 
-    function supportedAssetList(address asset) external view returns (bool);
+    function isSupportedAsset(address asset) external view returns (bool);
+
+    function getSupportedAssetList() external view returns (address[] memory);
 
     function depositLimitByAsset(address asset) external view returns (uint256);
 }

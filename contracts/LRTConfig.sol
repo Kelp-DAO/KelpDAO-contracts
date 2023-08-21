@@ -29,9 +29,11 @@ contract LRTConfig is ILRTConfig, AccessControlUpgradeable {
 
     mapping(bytes32 => address) public tokensMap;
     mapping(bytes32 => address) public contractsMap;
-    mapping(address => bool) public supportedAssetList;
+    mapping(address => bool) public isSupportedAsset;
     mapping(address => uint256) public depositLimitByAsset;
     mapping(address => address) public override assetStrategy;
+
+    address[] public supportedAssetList;
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
@@ -49,12 +51,9 @@ contract LRTConfig is ILRTConfig, AccessControlUpgradeable {
         setToken(R_ETH_TOKEN, _rETH);
         setToken(ST_ETH_TOKEN, _stETH);
         setToken(CB_ETH_TOKEN, _cbETH);
-        supportedAssetList[_rETH] = true;
-        supportedAssetList[_stETH] = true;
-        supportedAssetList[_cbETH] = true;
-        depositLimitByAsset[_rETH] = 100_000;
-        depositLimitByAsset[_stETH] = 100_000;
-        depositLimitByAsset[_cbETH] = 100_000;
+        _addNewSupportedAsset(_rETH, 100_000 ether);
+        _addNewSupportedAsset(_stETH, 100_000 ether);
+        _addNewSupportedAsset(_cbETH, 100_000 ether);
 
         _grantRole(DEFAULT_ADMIN_ROLE, _admin);
     }
@@ -63,16 +62,10 @@ contract LRTConfig is ILRTConfig, AccessControlUpgradeable {
         address _asset,
         uint256 _depositLimit
     ) external onlyRole(MANAGER) {
-        UtilLib.checkNonZeroAddress(_asset);
-        if (supportedAssetList[_asset]) {
-            revert AssetAlreadySupported();
-        }
-        supportedAssetList[_asset] = true;
-        depositLimitByAsset[_asset] = _depositLimit;
-        emit AddedNewSupportedAsset(_asset, _depositLimit);
+        _addNewSupportedAsset(_asset, _depositLimit);
     }
 
-    function updateAssetMaxDepositLimit(
+    function updateAssetCapacity(
         address _asset,
         uint256 _assetMaxDepositLimit
     ) external onlyRole(MANAGER) onlySupportedAsset(_asset) {
@@ -170,6 +163,15 @@ contract LRTConfig is ILRTConfig, AccessControlUpgradeable {
         return contractsMap[EIGEN_STRATEGY_MANAGER];
     }
 
+    function getSupportedAssetList()
+        external
+        view
+        override
+        returns (address[] memory)
+    {
+        return supportedAssetList;
+    }
+
     function setContract(bytes32 key, address val) internal {
         UtilLib.checkNonZeroAddress(val);
         if (contractsMap[key] == val) {
@@ -188,6 +190,20 @@ contract LRTConfig is ILRTConfig, AccessControlUpgradeable {
         emit SetToken(key, val);
     }
 
+    function _addNewSupportedAsset(
+        address _asset,
+        uint256 _depositLimit
+    ) internal {
+        UtilLib.checkNonZeroAddress(_asset);
+        if (isSupportedAsset[_asset]) {
+            revert AssetAlreadySupported();
+        }
+        isSupportedAsset[_asset] = true;
+        supportedAssetList.push(_asset);
+        depositLimitByAsset[_asset] = _depositLimit;
+        emit AddedNewSupportedAsset(_asset, _depositLimit);
+    }
+
     function onlyAdminRole(address account) external view override {
         if (!hasRole(DEFAULT_ADMIN_ROLE, account)) {
             revert CallerNotAdmin();
@@ -201,7 +217,7 @@ contract LRTConfig is ILRTConfig, AccessControlUpgradeable {
     }
 
     modifier onlySupportedAsset(address _asset) {
-        if (!supportedAssetList[_asset]) {
+        if (!isSupportedAsset[_asset]) {
             revert AssetNotSupported();
         }
         _;

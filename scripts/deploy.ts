@@ -6,9 +6,10 @@ async function main() {
   const staderAdmin = process.env.STADER_ADMIN ?? ''
   const rETH = process.env.R_ETH ?? ''
   const stETH = process.env.ST_ETH ?? ''
+  const cbETH = process.env.CB_ETH ?? ''
   const lrtConfigFactory = await ethers.getContractFactory('LRTConfig')
 
-  const lrtConfig = await upgrades.deployProxy(lrtConfigFactory, [staderAdmin, stETH, rETH])
+  const lrtConfig = await upgrades.deployProxy(lrtConfigFactory, [staderAdmin, stETH, rETH, cbETH])
   console.log('LRT config deployed at ', lrtConfig.address)
 
   const rsETHFactory = await ethers.getContractFactory('RSETH')

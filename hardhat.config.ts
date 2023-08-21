@@ -6,7 +6,6 @@ import '@nomiclabs/hardhat-ethers'
 import '@nomiclabs/hardhat-etherscan'
 import '@openzeppelin/hardhat-upgrades'
 import '@nomiclabs/hardhat-solhint'
-import '@nomicfoundation/hardhat-foundry'
 
 const config: HardhatUserConfig = {
   // Your type-safe config goes here

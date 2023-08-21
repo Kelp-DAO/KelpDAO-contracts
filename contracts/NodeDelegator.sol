@@ -9,8 +9,13 @@ import "./interfaces/IEigenStrategyManager.sol";
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 
-contract NodeDelegator is INodeDelegator, PausableUpgradeable {
+contract NodeDelegator is
+    INodeDelegator,
+    PausableUpgradeable,
+    ReentrancyGuardUpgradeable
+{
     ILRTConfig public lrtConfig;
 
     /// @custom:oz-upgrades-unsafe-allow constructor
@@ -21,13 +26,15 @@ contract NodeDelegator is INodeDelegator, PausableUpgradeable {
     function initialize(address _lrtConfig) external initializer {
         UtilLib.checkNonZeroAddress(_lrtConfig);
         __Pausable_init();
+        __ReentrancyGuard_init();
+
         lrtConfig = ILRTConfig(_lrtConfig);
         emit UpdatedLRTConfig(_lrtConfig);
     }
 
     function depositAssetIntoStrategy(
         address asset
-    ) external override onlySupportedAsset(asset) {
+    ) external override whenNotPaused nonReentrant onlySupportedAsset(asset) {
         lrtConfig.onlyManagerRole(msg.sender);
         address strategy = lrtConfig.assetStrategy(asset);
         UtilLib.checkNonZeroAddress(strategy);
@@ -51,7 +58,7 @@ contract NodeDelegator is INodeDelegator, PausableUpgradeable {
     function transferBackToLRTDepositPool(
         address asset,
         uint256 amount
-    ) external onlySupportedAsset(asset) {
+    ) external whenNotPaused nonReentrant onlySupportedAsset(asset) {
         lrtConfig.onlyManagerRole(msg.sender);
         if (!IERC20(asset).transfer(lrtConfig.getLRTDepositPool(), amount)) {
             revert TokenTransferFailed();
@@ -110,7 +117,7 @@ contract NodeDelegator is INodeDelegator, PausableUpgradeable {
     }
 
     modifier onlySupportedAsset(address _asset) {
-        if (!lrtConfig.supportedAssetList(_asset)) {
+        if (!lrtConfig.isSupportedAsset(_asset)) {
             revert AssetNotSupported();
         }
         _;
