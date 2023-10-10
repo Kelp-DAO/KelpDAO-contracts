@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity 0.8.12;
+pragma solidity 0.8.21;
 
 import "./UtilLib.sol";
 
 import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 
 /**
  * @title rsETH token Contract
@@ -13,12 +13,7 @@ import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
  * @notice The ERC20 contract for the rsETH token
  */
 
-contract RSETH is
-    Initializable,
-    ERC20Upgradeable,
-    PausableUpgradeable,
-    AccessControlUpgradeable
-{
+contract RSETH is Initializable, ERC20Upgradeable, PausableUpgradeable, AccessControlUpgradeable {
     event UpdatedLRTConfig(address indexed _lrtConfig);
 
     ILRTConfig public lrtConfig;
@@ -45,10 +40,7 @@ contract RSETH is
      * @param to the account to mint to
      * @param amount the amount of rsETH to mint
      */
-    function mint(
-        address to,
-        uint256 amount
-    ) external onlyRole(MINTER_ROLE) whenNotPaused {
+    function mint(address to, uint256 amount) external onlyRole(MINTER_ROLE) whenNotPaused {
         _mint(to, amount);
     }
 
@@ -57,10 +49,7 @@ contract RSETH is
      * @param account the account to burn from
      * @param amount the amount of rsETH to burn
      */
-    function burnFrom(
-        address account,
-        uint256 amount
-    ) external onlyRole(BURNER_ROLE) whenNotPaused {
+    function burnFrom(address account, uint256 amount) external onlyRole(BURNER_ROLE) whenNotPaused {
         _burn(account, amount);
     }
 
@@ -77,11 +66,11 @@ contract RSETH is
      * @dev Returns to normal state.
      * Contract must be paused
      */
-    function unpause() external onlyRole(DEFAULT_ADMIN_ROLE){
+    function unpause() external onlyRole(DEFAULT_ADMIN_ROLE) {
         _unpause();
     }
 
-    function updateLRTConfig(address _lrtConfig) external onlyRole(DEFAULT_ADMIN_ROLE){
+    function updateLRTConfig(address _lrtConfig) external onlyRole(DEFAULT_ADMIN_ROLE) {
         UtilLib.checkNonZeroAddress(_lrtConfig);
         lrtConfig = ILRTConfig(_lrtConfig);
         emit UpdatedLRTConfig(_lrtConfig);

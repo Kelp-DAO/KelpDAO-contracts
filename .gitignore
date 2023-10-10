@@ -1,12 +1,14 @@
+# directories
+cache
+cache_forge
+out
 node_modules
 .env
 coverage
 coverage.json
 typechain
-.openzeppelin
 typechain-types
 
 # Hardhat files
 cache
 artifacts
-

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity 0.8.12;
+pragma solidity 0.8.21;
 
 import "./UtilLib.sol";
 
@@ -7,15 +7,11 @@ import "./interfaces/INodeDelegator.sol";
 import "./interfaces/IStrategy.sol";
 import "./interfaces/IEigenStrategyManager.sol";
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
+import "@openzeppelin/contracts/interfaces/IERC20.sol";
+import "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 
-contract NodeDelegator is
-    INodeDelegator,
-    PausableUpgradeable,
-    ReentrancyGuardUpgradeable
-{
+contract NodeDelegator is INodeDelegator, PausableUpgradeable, ReentrancyGuardUpgradeable {
     ILRTConfig public lrtConfig;
 
     /// @custom:oz-upgrades-unsafe-allow constructor
@@ -32,24 +28,23 @@ contract NodeDelegator is
         emit UpdatedLRTConfig(_lrtConfig);
     }
 
-    function depositAssetIntoStrategy(
-        address asset
-    ) external override whenNotPaused nonReentrant onlySupportedAsset(asset) {
+    function depositAssetIntoStrategy(address asset)
+        external
+        override
+        whenNotPaused
+        nonReentrant
+        onlySupportedAsset(asset)
+    {
         lrtConfig.onlyManagerRole(msg.sender);
         address strategy = lrtConfig.assetStrategy(asset);
         UtilLib.checkNonZeroAddress(strategy);
         IERC20 token = IERC20(asset);
-        IEigenStrategyManager(lrtConfig.getEigenStrategyManager())
-            .depositIntoStrategy(
-                IStrategy(strategy),
-                token,
-                token.balanceOf(address(this))
-            );
+        IEigenStrategyManager(lrtConfig.getEigenStrategyManager()).depositIntoStrategy(
+            IStrategy(strategy), token, token.balanceOf(address(this))
+        );
     }
 
-    function maxApproveToEigenStrategyManager(
-        address asset
-    ) external override onlySupportedAsset(asset) {
+    function maxApproveToEigenStrategyManager(address asset) external override onlySupportedAsset(asset) {
         lrtConfig.onlyManagerRole(msg.sender);
         address strategyManager = lrtConfig.getEigenStrategyManager();
         IERC20(asset).approve(strategyManager, type(uint256).max);
@@ -58,32 +53,29 @@ contract NodeDelegator is
     function transferBackToLRTDepositPool(
         address asset,
         uint256 amount
-    ) external whenNotPaused nonReentrant onlySupportedAsset(asset) {
+    )
+        external
+        whenNotPaused
+        nonReentrant
+        onlySupportedAsset(asset)
+    {
         lrtConfig.onlyManagerRole(msg.sender);
         if (!IERC20(asset).transfer(lrtConfig.getLRTDepositPool(), amount)) {
             revert TokenTransferFailed();
         }
     }
 
-    function getAssetBalances()
-        external
-        view
-        override
-        returns (address[] memory, uint256[] memory)
-    {
-        (IStrategy[] memory strategies, ) = IEigenStrategyManager(
-            lrtConfig.getEigenStrategyManager()
-        ).getDeposits(address(this));
+    function getAssetBalances() external view override returns (address[] memory, uint256[] memory) {
+        (IStrategy[] memory strategies,) =
+            IEigenStrategyManager(lrtConfig.getEigenStrategyManager()).getDeposits(address(this));
 
         uint256 strategiesLength = strategies.length;
         address[] memory assets = new address[](strategiesLength);
         uint256[] memory assetBalances = new uint256[](strategiesLength);
 
-        for (uint256 i = 0; i < strategiesLength; ) {
+        for (uint256 i = 0; i < strategiesLength;) {
             assets[i] = address(IStrategy(strategies[i]).underlyingToken());
-            assetBalances[i] = IStrategy(strategies[i]).userUnderlyingView(
-                address(this)
-            );
+            assetBalances[i] = IStrategy(strategies[i]).userUnderlyingView(address(this));
             unchecked {
                 ++i;
             }
@@ -91,9 +83,7 @@ contract NodeDelegator is
         return (assets, assetBalances);
     }
 
-    function getAssetBalance(
-        address asset
-    ) external view override returns (uint256) {
+    function getAssetBalance(address asset) external view override returns (uint256) {
         address strategy = lrtConfig.assetStrategy(asset);
         return IStrategy(strategy).userUnderlyingView(address(this));
     }

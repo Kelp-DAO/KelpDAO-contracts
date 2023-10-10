@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity 0.8.12;
+pragma solidity 0.8.21;
 
 interface ILRTConfig {
     // Errors
@@ -13,10 +13,7 @@ interface ILRTConfig {
     event SetToken(bytes32 key, address newAddress);
     event SetContract(bytes32 key, address newAddress);
     event AddedNewSupportedAsset(address asset, uint256 depositLimit);
-    event AssetMaxDepositLimitUpdated(
-        address asset,
-        uint256 assetMaxDepositLimit
-    );
+    event AssetMaxDepositLimitUpdated(address asset, uint256 assetMaxDepositLimit);
 
     //Contracts
     function R_ETH_TOKEN() external view returns (bytes32);

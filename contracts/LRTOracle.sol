@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity 0.8.12;
+pragma solidity 0.8.21;
 
 import "./UtilLib.sol";
 
@@ -8,9 +8,8 @@ import "./interfaces/ILRTOracle.sol";
 import "./interfaces/ILRTDepositPool.sol";
 import "./interfaces/INodeDelegator.sol";
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
+import "@openzeppelin/contracts/interfaces/IERC20.sol";
+import "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 
 contract LRTOracle is ILRTOracle, PausableUpgradeable {
     ILRTConfig public lrtConfig;
@@ -38,7 +37,7 @@ contract LRTOracle is ILRTOracle, PausableUpgradeable {
     /// @dev Uses the most recently updated asset exchange rates to compute the total ETH in reserve.
     function updateRSETHRate() external {
         address rsETHToken = lrtConfig.getRSETHToken();
-        uint256 rsEthSupply = IERC20Upgradeable(rsETHToken).totalSupply();
+        uint256 rsEthSupply = IERC20(rsETHToken).totalSupply();
 
         if (rsEthSupply == 0) {
             assetER[rsETHToken] = 1e18;
@@ -49,24 +48,21 @@ contract LRTOracle is ILRTOracle, PausableUpgradeable {
         address lrtDepositPool = lrtConfig.getLRTDepositPool();
 
         address[] memory supportedAssets = lrtConfig.getSupportedAssetList();
-        for (uint16 asset_idx; asset_idx < supportedAssets.length; ) {
+        for (uint16 asset_idx; asset_idx < supportedAssets.length;) {
             address asset = supportedAssets[asset_idx];
-            totalETHInPool +=
-                IERC20(asset).balanceOf(lrtDepositPool) *
-                assetER[asset];
+            totalETHInPool += IERC20(asset).balanceOf(lrtDepositPool) * assetER[asset];
 
             unchecked {
                 ++asset_idx;
             }
         }
 
-        address[] memory ndcs = ILRTDepositPool(lrtDepositPool)
-            .getNodeDelegatorQueue();
-        for (uint16 ndc_idx; ndc_idx < ndcs.length; ) {
+        address[] memory ndcs = ILRTDepositPool(lrtDepositPool).getNodeDelegatorQueue();
+        for (uint16 ndc_idx; ndc_idx < ndcs.length;) {
             address ndc = ndcs[ndc_idx];
 
             // calculate ndc eth amount
-            for (uint16 asset_idx; asset_idx < supportedAssets.length; ) {
+            for (uint16 asset_idx; asset_idx < supportedAssets.length;) {
                 address asset = supportedAssets[asset_idx];
                 totalETHInPool += IERC20(asset).balanceOf(ndc) * assetER[asset];
                 unchecked {
@@ -79,10 +75,8 @@ contract LRTOracle is ILRTOracle, PausableUpgradeable {
                 address[] memory assets,
                 uint256[] memory balances // wei
             ) = INodeDelegator(ndc).getAssetBalances();
-            for (uint16 asset_idx = 0; asset_idx < assets.length; ) {
-                totalETHInPool +=
-                    balances[asset_idx] *
-                    assetER[assets[asset_idx]];
+            for (uint16 asset_idx = 0; asset_idx < assets.length;) {
+                totalETHInPool += balances[asset_idx] * assetER[assets[asset_idx]];
                 unchecked {
                     ++asset_idx;
                 }
