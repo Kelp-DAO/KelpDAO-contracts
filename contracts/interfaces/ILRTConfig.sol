@@ -10,10 +10,10 @@ interface ILRTConfig {
     error CallerNotManager();
 
     // Events
-    event SetToken(bytes32 key, address newAddress);
-    event SetContract(bytes32 key, address newAddress);
+    event SetToken(bytes32 key, address tokenAddr);
+    event SetContract(bytes32 key, address contractAddr);
     event AddedNewSupportedAsset(address asset, uint256 depositLimit);
-    event AssetMaxDepositLimitUpdated(address asset, uint256 assetMaxDepositLimit);
+    event AssetDepositLimitUpdate(address asset, uint256 depositLimit);
 
     //Contracts
     function R_ETH_TOKEN() external view returns (bytes32);

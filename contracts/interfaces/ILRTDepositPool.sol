@@ -5,7 +5,7 @@ interface ILRTDepositPool {
     //errors
     error AssetNotSupported();
     error TokenTransferFailed();
-    error NotEnoughAssetToDeposit();
+    error InvalidAmount();
     error NotEnoughAssetToTransfer();
     error MaximumDepositLimitReached();
     error MaximumCountOfNodeDelegatorReached();
@@ -14,11 +14,11 @@ interface ILRTDepositPool {
     event UpdatedLRTConfig(address lrtConfig);
     event MaxNodeDelegatorCountUpdated(uint16 maxNodeDelegatorCount);
     event AddedNodeDelegator(address nodeDelegatorContract);
-    event DepositedAsset(address asset, uint256 amountOfAsset, uint256 amountToSend);
+    event AssetDeposit(address asset, uint256 depositAmount, uint256 rsethMintAmount);
+
+    function depositAsset(address asset, uint256 depositAmount) external;
 
     function addNodeDelegatorContract(address[] calldata _nodeDelegatorContract) external;
-
-    function depositAsset(address _asset, uint256 _amount) external;
 
     function transferAssetToNodeDelegator(uint16 _ndcIndex, address _asset, uint256 _amount) external;
 

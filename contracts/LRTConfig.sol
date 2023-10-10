@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.21;
 
-import "./UtilLib.sol";
-import "./interfaces/ILRTConfig.sol";
+import { UtilLib } from "./UtilLib.sol";
+import { ILRTConfig } from "./interfaces/ILRTConfig.sol";
 
-import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
+import { AccessControlUpgradeable } from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 
 contract LRTConfig is ILRTConfig, AccessControlUpgradeable {
     //tokens
@@ -25,8 +25,8 @@ contract LRTConfig is ILRTConfig, AccessControlUpgradeable {
     //Roles
     bytes32 public constant override MANAGER = keccak256("MANAGER");
 
-    mapping(bytes32 => address) public tokensMap;
-    mapping(bytes32 => address) public contractsMap;
+    mapping(bytes32 => address) public tokenMap;
+    mapping(bytes32 => address) public contractMap;
     mapping(address => bool) public isSupportedAsset;
     mapping(address => uint256) public depositLimitByAsset;
     mapping(address => address) public override assetStrategy;
@@ -38,33 +38,44 @@ contract LRTConfig is ILRTConfig, AccessControlUpgradeable {
         _disableInitializers();
     }
 
-    function initialize(address _admin, address _stETH, address _rETH, address _cbETH) external initializer {
-        UtilLib.checkNonZeroAddress(_admin);
+    function initialize(address admin, address stETH, address rETH, address cbETH) external initializer {
+        UtilLib.checkNonZeroAddress(admin);
         __AccessControl_init();
-        setToken(R_ETH_TOKEN, _rETH);
-        setToken(ST_ETH_TOKEN, _stETH);
-        setToken(CB_ETH_TOKEN, _cbETH);
-        _addNewSupportedAsset(_rETH, 100_000 ether);
-        _addNewSupportedAsset(_stETH, 100_000 ether);
-        _addNewSupportedAsset(_cbETH, 100_000 ether);
+        setToken(R_ETH_TOKEN, rETH);
+        setToken(ST_ETH_TOKEN, stETH);
+        setToken(CB_ETH_TOKEN, cbETH);
+        _addNewSupportedAsset(rETH, 100_000 ether);
+        _addNewSupportedAsset(stETH, 100_000 ether);
+        _addNewSupportedAsset(cbETH, 100_000 ether);
 
-        _grantRole(DEFAULT_ADMIN_ROLE, _admin);
+        _grantRole(DEFAULT_ADMIN_ROLE, admin);
     }
 
-    function addNewSupportedAsset(address _asset, uint256 _depositLimit) external onlyRole(MANAGER) {
-        _addNewSupportedAsset(_asset, _depositLimit);
+    function addNewSupportedAsset(address asset, uint256 depositLimit) external onlyRole(MANAGER) {
+        _addNewSupportedAsset(asset, depositLimit);
+    }
+
+    function _addNewSupportedAsset(address asset, uint256 depositLimit) internal {
+        UtilLib.checkNonZeroAddress(asset);
+        if (isSupportedAsset[asset]) {
+            revert AssetAlreadySupported();
+        }
+        isSupportedAsset[asset] = true;
+        supportedAssetList.push(asset);
+        depositLimitByAsset[asset] = depositLimit;
+        emit AddedNewSupportedAsset(asset, depositLimit);
     }
 
     function updateAssetCapacity(
-        address _asset,
-        uint256 _assetMaxDepositLimit
+        address asset,
+        uint256 depositLimit
     )
         external
         onlyRole(MANAGER)
-        onlySupportedAsset(_asset)
+        onlySupportedAsset(asset)
     {
-        depositLimitByAsset[_asset] = _assetMaxDepositLimit;
-        emit AssetMaxDepositLimitUpdated(_asset, _assetMaxDepositLimit);
+        depositLimitByAsset[asset] = depositLimit;
+        emit AssetDepositLimitUpdate(asset, depositLimit);
     }
 
     //Token setter
@@ -114,32 +125,32 @@ contract LRTConfig is ILRTConfig, AccessControlUpgradeable {
 
     //Token Getters
     function getRSETHToken() external view override returns (address) {
-        return tokensMap[RS_ETH_TOKEN];
+        return tokenMap[RS_ETH_TOKEN];
     }
 
     function getRETHToken() external view override returns (address) {
-        return tokensMap[R_ETH_TOKEN];
+        return tokenMap[R_ETH_TOKEN];
     }
 
     function getSTETHToken() external view override returns (address) {
-        return tokensMap[ST_ETH_TOKEN];
+        return tokenMap[ST_ETH_TOKEN];
     }
 
     function getCBETHToken() external view override returns (address) {
-        return tokensMap[CB_ETH_TOKEN];
+        return tokenMap[CB_ETH_TOKEN];
     }
 
     //Contracts Getters
     function getLRTOracle() external view override returns (address) {
-        return contractsMap[LRT_ORACLE];
+        return contractMap[LRT_ORACLE];
     }
 
     function getLRTDepositPool() external view override returns (address) {
-        return contractsMap[LRT_DEPOSIT_POOL];
+        return contractMap[LRT_DEPOSIT_POOL];
     }
 
     function getEigenStrategyManager() external view override returns (address) {
-        return contractsMap[EIGEN_STRATEGY_MANAGER];
+        return contractMap[EIGEN_STRATEGY_MANAGER];
     }
 
     function getSupportedAssetList() external view override returns (address[] memory) {
@@ -148,31 +159,20 @@ contract LRTConfig is ILRTConfig, AccessControlUpgradeable {
 
     function setContract(bytes32 key, address val) internal {
         UtilLib.checkNonZeroAddress(val);
-        if (contractsMap[key] == val) {
+        if (contractMap[key] == val) {
             revert IndenticalValue();
         }
-        contractsMap[key] = val;
+        contractMap[key] = val;
         emit SetContract(key, val);
     }
 
     function setToken(bytes32 key, address val) internal {
         UtilLib.checkNonZeroAddress(val);
-        if (tokensMap[key] == val) {
+        if (tokenMap[key] == val) {
             revert IndenticalValue();
         }
-        tokensMap[key] = val;
+        tokenMap[key] = val;
         emit SetToken(key, val);
-    }
-
-    function _addNewSupportedAsset(address _asset, uint256 _depositLimit) internal {
-        UtilLib.checkNonZeroAddress(_asset);
-        if (isSupportedAsset[_asset]) {
-            revert AssetAlreadySupported();
-        }
-        isSupportedAsset[_asset] = true;
-        supportedAssetList.push(_asset);
-        depositLimitByAsset[_asset] = _depositLimit;
-        emit AddedNewSupportedAsset(_asset, _depositLimit);
     }
 
     function onlyAdminRole(address account) external view override {

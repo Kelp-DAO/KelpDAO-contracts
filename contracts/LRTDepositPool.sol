@@ -1,18 +1,21 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.21;
 
-import "./RSETH.sol";
-import "./UtilLib.sol";
+import { RSETH } from "./RSETH.sol";
+import { UtilLib } from "./UtilLib.sol";
 
-import "./interfaces/ILRTOracle.sol";
-import "./interfaces/INodeDelegator.sol";
-import "./interfaces/ILRTDepositPool.sol";
+import { ILRTConfig } from "./interfaces/ILRTConfig.sol";
+import { ILRTOracle } from "./interfaces/ILRTOracle.sol";
+import { INodeDelegator } from "./interfaces/INodeDelegator.sol";
+import { ILRTDepositPool } from "./interfaces/ILRTDepositPool.sol";
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
+import { AccessControlUpgradeable } from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
+import { ReentrancyGuardUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 
+/// @title Deposit Pool Contract for LSTs
+/// @notice Handles LST asset deposits
 contract LRTDepositPool is
     ILRTDepositPool,
     AccessControlUpgradeable,
@@ -30,13 +33,43 @@ contract LRTDepositPool is
         _disableInitializers();
     }
 
-    function initialize(address _lrtConfig) external initializer {
-        UtilLib.checkNonZeroAddress(_lrtConfig);
+    function initialize(address lrtConfigAddr) external initializer {
+        UtilLib.checkNonZeroAddress(lrtConfigAddr);
         __Pausable_init();
         __AccessControl_init();
         __ReentrancyGuard_init();
         maxNodeDelegatorCount = 10;
-        lrtConfig = ILRTConfig(_lrtConfig);
+        lrtConfig = ILRTConfig(lrtConfigAddr);
+    }
+
+    /// @notice helps user stake LST to the protocol
+    /// @param asset LST asset address to stake
+    /// @param depositAmount LST asset amount to stake
+    function depositAsset(
+        address asset,
+        uint256 depositAmount
+    )
+        external
+        whenNotPaused
+        nonReentrant
+        onlySupportedAsset(asset)
+    {
+        if (depositAmount == 0) {
+            revert InvalidAmount();
+        }
+        if (totalAssetDeposits[asset] + depositAmount > lrtConfig.depositLimitByAsset(asset)) {
+            revert MaximumDepositLimitReached();
+        }
+        totalAssetDeposits[asset] += depositAmount;
+        ILRTOracle lrtOracle = ILRTOracle(lrtConfig.getLRTOracle());
+        uint256 rsethAmountToMint =
+            (depositAmount * lrtOracle.assetER(asset)) / lrtOracle.assetER(lrtConfig.getRSETHToken());
+
+        if (!IERC20(asset).transferFrom(msg.sender, address(this), depositAmount)) {
+            revert TokenTransferFailed();
+        }
+        RSETH(lrtConfig.getRSETHToken()).mint(msg.sender, rsethAmountToMint);
+        emit AssetDeposit(asset, depositAmount, rsethAmountToMint);
     }
 
     function addNodeDelegatorContract(address[] calldata _nodeDelegatorContract) external {
@@ -48,31 +81,6 @@ contract LRTDepositPool is
             nodeDelegatorQueue.push(_nodeDelegatorContract[i]);
             emit AddedNodeDelegator(_nodeDelegatorContract[i]);
         }
-    }
-
-    function depositAsset(
-        address _asset,
-        uint256 _amount
-    )
-        external
-        whenNotPaused
-        nonReentrant
-        onlySupportedAsset(_asset)
-    {
-        if (IERC20(_asset).balanceOf(msg.sender) < _amount || _amount == 0) {
-            revert NotEnoughAssetToDeposit();
-        }
-        if (totalAssetDeposits[_asset] + _amount > lrtConfig.depositLimitByAsset(_asset)) {
-            revert MaximumDepositLimitReached();
-        }
-        if (!IERC20(_asset).transferFrom(msg.sender, address(this), _amount)) {
-            revert TokenTransferFailed();
-        }
-        totalAssetDeposits[_asset] += _amount;
-        ILRTOracle lrtOracle = ILRTOracle(lrtConfig.getLRTOracle());
-        uint256 amountToSend = (_amount * lrtOracle.assetER(_asset)) / lrtOracle.assetER(lrtConfig.getRSETHToken());
-        RSETH(lrtConfig.getRSETHToken()).mint(msg.sender, amountToSend);
-        emit DepositedAsset(_asset, _amount, amountToSend);
     }
 
     function transferAssetToNodeDelegator(
