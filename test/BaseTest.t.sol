@@ -18,9 +18,11 @@ contract MockToken is ERC20 {
 }
 
 contract BaseTest is Test {
-    MockToken public lst;
+    MockToken public stETH;
+    MockToken public rETH;
+    MockToken public cbETH;
 
-    address public adim = makeAddr("adim");
+    address public admin = makeAddr("admin");
 
     address public alice = makeAddr("alice");
     address public bob = makeAddr("bob");
@@ -29,12 +31,20 @@ contract BaseTest is Test {
     uint256 public oneThousand = 1000 ** 18;
 
     function setUp() public virtual {
-        lst = new MockToken("staked ETH", "stETH");
+        stETH = new MockToken("staked ETH", "stETH");
+        rETH = new MockToken("rETH", "rETH");
+        cbETH = new MockToken("cbETH", "cbETH");
 
-        // mint tokens to alice and bob
-        lst.mint(alice, oneThousand);
-        lst.mint(bob, oneThousand);
-        lst.mint(carol, oneThousand);
+        // mint LST tokens to alice, bob and carol
+        mintLSTTokensForUsers(stETH);
+        mintLSTTokensForUsers(rETH);
+        mintLSTTokensForUsers(cbETH);
+    }
+
+    function mintLSTTokensForUsers(MockToken asset) internal {
+        asset.mint(alice, oneThousand);
+        asset.mint(bob, oneThousand);
+        asset.mint(carol, oneThousand);
     }
 
     /// @dev Expects an event to be emitted by checking all three topics and the data. As mentioned

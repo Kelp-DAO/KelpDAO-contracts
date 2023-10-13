@@ -1,24 +1,28 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.21;
 
-import "./UtilLib.sol";
+import { UtilLib } from "./utils/UtilLib.sol";
+import { LRTConstants } from "./utils/LRTConstants.sol";
+import { LRTConfigRoleChecker, ILRTConfig } from "./utils/LRTConfigRoleChecker.sol";
 
-import "./interfaces/INodeDelegator.sol";
-import "./interfaces/IStrategy.sol";
-import "./interfaces/IEigenStrategyManager.sol";
+import { INodeDelegator } from "./interfaces/INodeDelegator.sol";
+import { IStrategy } from "./interfaces/IStrategy.sol";
+import { IEigenStrategyManager } from "./interfaces/IEigenStrategyManager.sol";
 
-import "@openzeppelin/contracts/interfaces/IERC20.sol";
-import "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
+import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
+import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
+import { ReentrancyGuardUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 
-contract NodeDelegator is INodeDelegator, PausableUpgradeable, ReentrancyGuardUpgradeable {
-    ILRTConfig public lrtConfig;
-
+/// @title NodeDelegator Contract
+/// @notice The contract that handles the depositing of assets into strategies
+contract NodeDelegator is INodeDelegator, LRTConfigRoleChecker, PausableUpgradeable, ReentrancyGuardUpgradeable {
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
         _disableInitializers();
     }
 
+    /// @dev Initializes the contract
+    /// @param _lrtConfig LRT config address
     function initialize(address _lrtConfig) external initializer {
         UtilLib.checkNonZeroAddress(_lrtConfig);
         __Pausable_init();
@@ -28,28 +32,42 @@ contract NodeDelegator is INodeDelegator, PausableUpgradeable, ReentrancyGuardUp
         emit UpdatedLRTConfig(_lrtConfig);
     }
 
+    /// @notice Deposits an asset into its strategy
+    /// @dev only supported assets can be deposited and only called by the LRT manager
+    /// @param asset the asset to deposit
     function depositAssetIntoStrategy(address asset)
         external
         override
         whenNotPaused
         nonReentrant
         onlySupportedAsset(asset)
+        onlyLRTManager
     {
-        lrtConfig.onlyManagerRole(msg.sender);
         address strategy = lrtConfig.assetStrategy(asset);
         UtilLib.checkNonZeroAddress(strategy);
         IERC20 token = IERC20(asset);
-        IEigenStrategyManager(lrtConfig.getEigenStrategyManager()).depositIntoStrategy(
+        address eigenlayerStrategyManagerAddress = lrtConfig.getContract(LRTConstants.EIGEN_STRATEGY_MANAGER);
+        IEigenStrategyManager(eigenlayerStrategyManagerAddress).depositIntoStrategy(
             IStrategy(strategy), token, token.balanceOf(address(this))
         );
     }
 
-    function maxApproveToEigenStrategyManager(address asset) external override onlySupportedAsset(asset) {
-        lrtConfig.onlyManagerRole(msg.sender);
-        address strategyManager = lrtConfig.getEigenStrategyManager();
-        IERC20(asset).approve(strategyManager, type(uint256).max);
+    /// @notice Deposits an asset into its strategy
+    /// @dev only supported assets can be deposited and only called by the LRT manager
+    /// @param asset the asset to deposit
+    function maxApproveToEigenStrategyManager(address asset)
+        external
+        override
+        onlySupportedAsset(asset)
+        onlyLRTManager
+    {
+        address eigenlayerStrategyManagerAddress = lrtConfig.getContract(LRTConstants.EIGEN_STRATEGY_MANAGER);
+        IERC20(asset).approve(eigenlayerStrategyManagerAddress, type(uint256).max);
     }
 
+    /// @notice Transfers an asset back to the LRT deposit pool
+    /// @dev only supported assets can be transferred and only called by the LRT manager
+    /// @param asset the asset to transfer
     function transferBackToLRTDepositPool(
         address asset,
         uint256 amount
@@ -58,16 +76,23 @@ contract NodeDelegator is INodeDelegator, PausableUpgradeable, ReentrancyGuardUp
         whenNotPaused
         nonReentrant
         onlySupportedAsset(asset)
+        onlyLRTManager
     {
-        lrtConfig.onlyManagerRole(msg.sender);
-        if (!IERC20(asset).transfer(lrtConfig.getLRTDepositPool(), amount)) {
+        address lrtDepositPool = lrtConfig.getContract(LRTConstants.LRT_DEPOSIT_POOL);
+
+        if (!IERC20(asset).transfer(lrtDepositPool, amount)) {
             revert TokenTransferFailed();
         }
     }
 
+    /// @notice Transfers an asset back to the LRT deposit pool
+    /// @return assets the assets that the node delegator has deposited into strategies
+    /// @return assetBalances the balances of the assets that the node delegator has deposited into strategies
     function getAssetBalances() external view override returns (address[] memory, uint256[] memory) {
+        address eigenlayerStrategyManagerAddress = lrtConfig.getContract(LRTConstants.EIGEN_STRATEGY_MANAGER);
+
         (IStrategy[] memory strategies,) =
-            IEigenStrategyManager(lrtConfig.getEigenStrategyManager()).getDeposits(address(this));
+            IEigenStrategyManager(eigenlayerStrategyManagerAddress).getDeposits(address(this));
 
         uint256 strategiesLength = strategies.length;
         address[] memory assets = new address[](strategiesLength);
@@ -83,33 +108,21 @@ contract NodeDelegator is INodeDelegator, PausableUpgradeable, ReentrancyGuardUp
         return (assets, assetBalances);
     }
 
+    /// @dev Returns the balance of an asset that the node delegator has deposited into a strategy
+    /// @param asset the asset to get the balance of
+    /// @return the balance of the asset
     function getAssetBalance(address asset) external view override returns (uint256) {
         address strategy = lrtConfig.assetStrategy(asset);
         return IStrategy(strategy).userUnderlyingView(address(this));
     }
 
-    /**
-     * @dev Triggers stopped state.
-     * Contract must not be paused.
-     */
-    function pause() external {
-        lrtConfig.onlyManagerRole(msg.sender);
+    /// @dev Triggers stopped state. Contract must not be paused.
+    function pause() external onlyLRTManager {
         _pause();
     }
 
-    /**
-     * @dev Returns to normal state.
-     * Contract must be paused
-     */
-    function unpause() external {
-        lrtConfig.onlyAdminRole(msg.sender);
+    /// @dev Returns to normal state. Contract must be paused
+    function unpause() external onlyLRTAdmin {
         _unpause();
-    }
-
-    modifier onlySupportedAsset(address _asset) {
-        if (!lrtConfig.isSupportedAsset(_asset)) {
-            revert AssetNotSupported();
-        }
-        _;
     }
 }

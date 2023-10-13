@@ -1,35 +1,20 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.21;
 
-import { UtilLib } from "./UtilLib.sol";
+import { UtilLib } from "./utils/UtilLib.sol";
 import { ILRTConfig } from "./interfaces/ILRTConfig.sol";
+import { LRTConstants } from "./utils/LRTConstants.sol";
 
 import { AccessControlUpgradeable } from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 
+/// @title LRTConfig - LRT Config Contract
+/// @notice Handles LRT configuration
 contract LRTConfig is ILRTConfig, AccessControlUpgradeable {
-    //tokens
-    //rETH token
-    bytes32 public constant override R_ETH_TOKEN = keccak256("R_ETH_TOKEN");
-    //rsETH token
-    bytes32 public constant override RS_ETH_TOKEN = keccak256("RS_ETH_TOKEN");
-    //stETH token
-    bytes32 public constant override ST_ETH_TOKEN = keccak256("ST_ETH_TOKEN");
-    //cbETH token
-    bytes32 public constant override CB_ETH_TOKEN = keccak256("CB_ETH_TOKEN");
-
-    //contracts
-    bytes32 public constant override LRT_ORACLE = keccak256("LRT_ORACLE");
-    bytes32 public constant override LRT_DEPOSIT_POOL = keccak256("LRT_DEPOSIT_POOL");
-    bytes32 public constant override EIGEN_STRATEGY_MANAGER = keccak256("EIGEN_STRATEGY_MANAGER");
-
-    //Roles
-    bytes32 public constant override MANAGER = keccak256("MANAGER");
-
-    mapping(bytes32 => address) public tokenMap;
-    mapping(bytes32 => address) public contractMap;
-    mapping(address => bool) public isSupportedAsset;
-    mapping(address => uint256) public depositLimitByAsset;
-    mapping(address => address) public override assetStrategy;
+    mapping(bytes32 tokenKey => address tokenAddress) public tokenMap;
+    mapping(bytes32 contractKey => address contractAddress) public contractMap;
+    mapping(address token => bool isSupported) public isSupportedAsset;
+    mapping(address token => uint256 amount) public depositLimitByAsset;
+    mapping(address token => address strategy) public override assetStrategy;
 
     address[] public supportedAssetList;
 
@@ -38,12 +23,28 @@ contract LRTConfig is ILRTConfig, AccessControlUpgradeable {
         _disableInitializers();
     }
 
+    modifier onlySupportedAsset(address _asset) {
+        if (!isSupportedAsset[_asset]) {
+            revert AssetNotSupported();
+        }
+        _;
+    }
+
+    /// @dev Initializes the contract
+    /// @param admin Admin address
+    /// @param stETH stETH address
+    /// @param rETH rETH address
+    /// @param cbETH cbETH address
     function initialize(address admin, address stETH, address rETH, address cbETH) external initializer {
         UtilLib.checkNonZeroAddress(admin);
+        UtilLib.checkNonZeroAddress(stETH);
+        UtilLib.checkNonZeroAddress(rETH);
+        UtilLib.checkNonZeroAddress(cbETH);
+
         __AccessControl_init();
-        setToken(R_ETH_TOKEN, rETH);
-        setToken(ST_ETH_TOKEN, stETH);
-        setToken(CB_ETH_TOKEN, cbETH);
+        _setToken(LRTConstants.R_ETH_TOKEN, rETH);
+        _setToken(LRTConstants.ST_ETH_TOKEN, stETH);
+        _setToken(LRTConstants.CB_ETH_TOKEN, cbETH);
         _addNewSupportedAsset(rETH, 100_000 ether);
         _addNewSupportedAsset(stETH, 100_000 ether);
         _addNewSupportedAsset(cbETH, 100_000 ether);
@@ -51,11 +52,17 @@ contract LRTConfig is ILRTConfig, AccessControlUpgradeable {
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
     }
 
-    function addNewSupportedAsset(address asset, uint256 depositLimit) external onlyRole(MANAGER) {
+    /// @dev Adds a new supported asset
+    /// @param asset Asset address
+    /// @param depositLimit Deposit limit for the asset
+    function addNewSupportedAsset(address asset, uint256 depositLimit) external onlyRole(LRTConstants.MANAGER) {
         _addNewSupportedAsset(asset, depositLimit);
     }
 
-    function _addNewSupportedAsset(address asset, uint256 depositLimit) internal {
+    /// @dev private function to add a new supported asset
+    /// @param asset Asset address
+    /// @param depositLimit Deposit limit for the asset
+    function _addNewSupportedAsset(address asset, uint256 depositLimit) private {
         UtilLib.checkNonZeroAddress(asset);
         if (isSupportedAsset[asset]) {
             revert AssetAlreadySupported();
@@ -66,48 +73,24 @@ contract LRTConfig is ILRTConfig, AccessControlUpgradeable {
         emit AddedNewSupportedAsset(asset, depositLimit);
     }
 
+    /// @dev Updates the deposit limit for an asset
+    /// @param asset Asset address
+    /// @param depositLimit New deposit limit
     function updateAssetCapacity(
         address asset,
         uint256 depositLimit
     )
         external
-        onlyRole(MANAGER)
+        onlyRole(LRTConstants.MANAGER)
         onlySupportedAsset(asset)
     {
         depositLimitByAsset[asset] = depositLimit;
         emit AssetDepositLimitUpdate(asset, depositLimit);
     }
 
-    //Token setter
-    function updateRSETHToken(address _rsETH) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        setToken(RS_ETH_TOKEN, _rsETH);
-    }
-
-    function updateRETHToken(address _rETH) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        setToken(R_ETH_TOKEN, _rETH);
-    }
-
-    function updateSTETHToken(address _stETH) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        setToken(ST_ETH_TOKEN, _stETH);
-    }
-
-    function updateCBETHToken(address _cbETH) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        setToken(CB_ETH_TOKEN, _cbETH);
-    }
-
-    //Contract setter
-    function updateLRTOracle(address _lrtOracle) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        setContract(LRT_ORACLE, _lrtOracle);
-    }
-
-    function updateLRTDepositPool(address _lrtDepositPool) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        setContract(LRT_DEPOSIT_POOL, _lrtDepositPool);
-    }
-
-    function updateEigenStrategyManager(address _eigenStrategyManager) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        setContract(EIGEN_STRATEGY_MANAGER, _eigenStrategyManager);
-    }
-
+    /// @dev Updates the strategy for an asset
+    /// @param asset Asset address
+    /// @param strategy New strategy address
     function updateAssetStrategy(
         address asset,
         address strategy
@@ -118,79 +101,58 @@ contract LRTConfig is ILRTConfig, AccessControlUpgradeable {
     {
         UtilLib.checkNonZeroAddress(strategy);
         if (assetStrategy[asset] == strategy) {
-            revert IndenticalValue();
+            revert ValueAlreadyInUse();
         }
         assetStrategy[asset] = strategy;
     }
 
-    //Token Getters
-    function getRSETHToken() external view override returns (address) {
-        return tokenMap[RS_ETH_TOKEN];
+    /*//////////////////////////////////////////////////////////////
+                            GETTERS
+    //////////////////////////////////////////////////////////////*/
+    function getLSTToken(bytes32 tokenKey) external view override returns (address) {
+        return tokenMap[tokenKey];
     }
 
-    function getRETHToken() external view override returns (address) {
-        return tokenMap[R_ETH_TOKEN];
-    }
-
-    function getSTETHToken() external view override returns (address) {
-        return tokenMap[ST_ETH_TOKEN];
-    }
-
-    function getCBETHToken() external view override returns (address) {
-        return tokenMap[CB_ETH_TOKEN];
-    }
-
-    //Contracts Getters
-    function getLRTOracle() external view override returns (address) {
-        return contractMap[LRT_ORACLE];
-    }
-
-    function getLRTDepositPool() external view override returns (address) {
-        return contractMap[LRT_DEPOSIT_POOL];
-    }
-
-    function getEigenStrategyManager() external view override returns (address) {
-        return contractMap[EIGEN_STRATEGY_MANAGER];
+    function getContract(bytes32 contractKey) external view override returns (address) {
+        return contractMap[contractKey];
     }
 
     function getSupportedAssetList() external view override returns (address[] memory) {
         return supportedAssetList;
     }
 
-    function setContract(bytes32 key, address val) internal {
-        UtilLib.checkNonZeroAddress(val);
-        if (contractMap[key] == val) {
-            revert IndenticalValue();
-        }
-        contractMap[key] = val;
-        emit SetContract(key, val);
+    /*//////////////////////////////////////////////////////////////
+                            SETTERS
+    //////////////////////////////////////////////////////////////*/
+    function setToken(bytes32 tokenKey, address assetAddress) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        _setToken(tokenKey, assetAddress);
     }
 
-    function setToken(bytes32 key, address val) internal {
+    /// @dev private function to set a token
+    /// @param key Token key
+    /// @param val Token address
+    function _setToken(bytes32 key, address val) private {
         UtilLib.checkNonZeroAddress(val);
         if (tokenMap[key] == val) {
-            revert IndenticalValue();
+            revert ValueAlreadyInUse();
         }
         tokenMap[key] = val;
         emit SetToken(key, val);
     }
 
-    function onlyAdminRole(address account) external view override {
-        if (!hasRole(DEFAULT_ADMIN_ROLE, account)) {
-            revert CallerNotAdmin();
-        }
+    function setContract(bytes32 contractKey, address contractAddress) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        _setContract(contractKey, contractAddress);
     }
 
-    function onlyManagerRole(address account) public view override {
-        if (!hasRole(MANAGER, account)) {
-            revert CallerNotManager();
+    /// @dev private function to set a contract
+    /// @param key Contract key
+    /// @param val Contract address
+    function _setContract(bytes32 key, address val) private {
+        UtilLib.checkNonZeroAddress(val);
+        if (contractMap[key] == val) {
+            revert ValueAlreadyInUse();
         }
-    }
-
-    modifier onlySupportedAsset(address _asset) {
-        if (!isSupportedAsset[_asset]) {
-            revert AssetNotSupported();
-        }
-        _;
+        contractMap[key] = val;
+        emit SetContract(key, val);
     }
 }

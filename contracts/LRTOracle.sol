@@ -1,26 +1,29 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.21;
 
-import "./UtilLib.sol";
+import { UtilLib } from "./utils/UtilLib.sol";
+import { LRTConstants } from "./utils/LRTConstants.sol";
+import { LRTConfigRoleChecker, ILRTConfig } from "./utils/LRTConfigRoleChecker.sol";
 
-import "./interfaces/ILRTConfig.sol";
-import "./interfaces/ILRTOracle.sol";
-import "./interfaces/ILRTDepositPool.sol";
-import "./interfaces/INodeDelegator.sol";
+import { ILRTOracle } from "./interfaces/ILRTOracle.sol";
+import { ILRTDepositPool } from "./interfaces/ILRTDepositPool.sol";
+import { INodeDelegator } from "./interfaces/INodeDelegator.sol";
 
-import "@openzeppelin/contracts/interfaces/IERC20.sol";
-import "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
+import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
+import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 
-contract LRTOracle is ILRTOracle, PausableUpgradeable {
-    ILRTConfig public lrtConfig;
-
-    mapping(address => uint256) public override assetER;
+/// @title LRTOracle Contract
+/// @notice oracle contract that calculates the exchange rate of assets
+contract LRTOracle is ILRTOracle, LRTConfigRoleChecker, PausableUpgradeable {
+    mapping(address asset => uint256 er) public override assetER;
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
         _disableInitializers();
     }
 
+    /// @dev Initializes the contract
+    /// @param _lrtConfig LRT config address
     function initialize(address _lrtConfig) external initializer {
         UtilLib.checkNonZeroAddress(_lrtConfig);
         __Pausable_init();
@@ -29,14 +32,16 @@ contract LRTOracle is ILRTOracle, PausableUpgradeable {
         emit UpdatedLRTConfig(_lrtConfig);
     }
 
-    function updateAssetER(address asset, uint256 er) public {
-        lrtConfig.onlyManagerRole(msg.sender);
+    /// @notice Updates the exchange rate of an asset
+    /// @dev only callable by LRT manager
+    /// @param asset the asset to update
+    function updateAssetER(address asset, uint256 er) public onlyLRTManager {
         assetER[asset] = er;
     }
 
     /// @dev Uses the most recently updated asset exchange rates to compute the total ETH in reserve.
     function updateRSETHRate() external {
-        address rsETHToken = lrtConfig.getRSETHToken();
+        address rsETHToken = lrtConfig.getLSTToken(LRTConstants.RS_ETH_TOKEN);
         uint256 rsEthSupply = IERC20(rsETHToken).totalSupply();
 
         if (rsEthSupply == 0) {
@@ -45,7 +50,7 @@ contract LRTOracle is ILRTOracle, PausableUpgradeable {
         }
 
         uint256 totalETHInPool;
-        address lrtDepositPool = lrtConfig.getLRTDepositPool();
+        address lrtDepositPool = lrtConfig.getContract(LRTConstants.LRT_DEPOSIT_POOL);
 
         address[] memory supportedAssets = lrtConfig.getSupportedAssetList();
         for (uint16 asset_idx; asset_idx < supportedAssets.length;) {
@@ -90,21 +95,13 @@ contract LRTOracle is ILRTOracle, PausableUpgradeable {
         assetER[rsETHToken] = totalETHInPool / rsEthSupply;
     }
 
-    /**
-     * @dev Triggers stopped state.
-     * Contract must not be paused.
-     */
-    function pause() external {
-        lrtConfig.onlyManagerRole(msg.sender);
+    /// @dev Triggers stopped state. Contract must not be paused.
+    function pause() external onlyLRTManager {
         _pause();
     }
 
-    /**
-     * @dev Returns to normal state.
-     * Contract must be paused
-     */
-    function unpause() external {
-        lrtConfig.onlyAdminRole(msg.sender);
+    /// @dev Returns to normal state. Contract must be paused
+    function unpause() external onlyLRTAdmin {
         _unpause();
     }
 }

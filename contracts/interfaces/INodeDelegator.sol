@@ -4,7 +4,7 @@ pragma solidity 0.8.21;
 import "./IStrategy.sol";
 
 interface INodeDelegator {
-    // errros
+    // errors
     error TokenTransferFailed();
     error AssetNotSupported();
 
@@ -12,7 +12,6 @@ interface INodeDelegator {
     event UpdatedLRTConfig(address indexed _lrtConfig);
 
     // methods
-
     function depositAssetIntoStrategy(address asset) external;
 
     function maxApproveToEigenStrategyManager(address asset) external;

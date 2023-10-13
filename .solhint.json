@@ -18,7 +18,7 @@
     ],
     "max-line-length": [
       "error",
-      120
+      160
     ],
     "named-parameters-mapping": "warn",
     "no-console": "off",

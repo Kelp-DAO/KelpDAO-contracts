@@ -1,0 +1,364 @@
+// SPDX-License-Identifier: UNLICENSED
+
+pragma solidity 0.8.21;
+
+import { BaseTest, MockToken } from "./BaseTest.t.sol";
+import { LRTConfig, ILRTConfig } from "contracts/LRTConfig.sol";
+import { LRTConstants } from "contracts/utils/LRTConstants.sol";
+import { UtilLib } from "contracts/utils/UtilLib.sol";
+import { IAccessControl } from "@openzeppelin/contracts/access/IAccessControl.sol";
+import { TransparentUpgradeableProxy } from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
+import { ProxyAdmin } from "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
+import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+
+contract LRTConfigTest is BaseTest {
+    LRTConfig public lrtConfig;
+
+    event AssetDepositLimitUpdate(address asset, uint256 depositLimit);
+
+    address public manager = makeAddr("manager");
+
+    function setUp() public virtual override {
+        super.setUp();
+
+        ProxyAdmin proxyAdmin = new ProxyAdmin(admin);
+        LRTConfig lrtConfigImpl = new LRTConfig();
+        TransparentUpgradeableProxy lrtConfigProxy = new TransparentUpgradeableProxy(
+            address(lrtConfigImpl),
+            address(proxyAdmin),
+            ""
+        );
+
+        lrtConfig = LRTConfig(address(lrtConfigProxy));
+    }
+}
+
+contract LRTConfigInitialize is LRTConfigTest {
+    function test_RevertInitializeIfAlreadyInitialized() external {
+        lrtConfig.initialize(admin, address(stETH), address(rETH), address(cbETH));
+
+        vm.startPrank(admin);
+        // cannot initialize again
+        vm.expectRevert(Initializable.InvalidInitialization.selector);
+        lrtConfig.initialize(admin, address(stETH), address(rETH), address(cbETH));
+        vm.stopPrank();
+    }
+
+    function test_RevertInitializeIfAdminIsZero() external {
+        vm.startPrank(admin);
+        vm.expectRevert(UtilLib.ZeroAddressNotAllowed.selector);
+        lrtConfig.initialize(address(0), address(stETH), address(rETH), address(cbETH));
+        vm.stopPrank();
+    }
+
+    function test_RevertInitializeIfStETHIsZero() external {
+        vm.startPrank(admin);
+        vm.expectRevert(UtilLib.ZeroAddressNotAllowed.selector);
+        lrtConfig.initialize(admin, address(0), address(rETH), address(cbETH));
+        vm.stopPrank();
+    }
+
+    function test_RevertInitializeIfRETHIsZero() external {
+        vm.startPrank(admin);
+        vm.expectRevert(UtilLib.ZeroAddressNotAllowed.selector);
+        lrtConfig.initialize(admin, address(stETH), address(0), address(cbETH));
+        vm.stopPrank();
+    }
+
+    function test_RevertInitializeIfCbETHIsZero() external {
+        vm.startPrank(admin);
+        vm.expectRevert(UtilLib.ZeroAddressNotAllowed.selector);
+        lrtConfig.initialize(admin, address(stETH), address(rETH), address(0));
+        vm.stopPrank();
+    }
+
+    function test_SetInitializableValues() external {
+        lrtConfig.initialize(admin, address(stETH), address(rETH), address(cbETH));
+
+        assertEq(lrtConfig.tokenMap(LRTConstants.ST_ETH_TOKEN), address(stETH));
+        assertEq(lrtConfig.tokenMap(LRTConstants.R_ETH_TOKEN), address(rETH));
+        assertEq(lrtConfig.tokenMap(LRTConstants.CB_ETH_TOKEN), address(cbETH));
+        assertTrue(lrtConfig.hasRole(lrtConfig.DEFAULT_ADMIN_ROLE(), admin));
+
+        uint256 depositLimit = 100_000 ether;
+        assertEq(lrtConfig.depositLimitByAsset(address(stETH)), depositLimit);
+        assertEq(lrtConfig.depositLimitByAsset(address(rETH)), depositLimit);
+        assertEq(lrtConfig.depositLimitByAsset(address(cbETH)), depositLimit);
+    }
+}
+
+contract LRTConfigAddNewSupportedAssetTest is LRTConfigTest {
+    function setUp() public override {
+        super.setUp();
+
+        lrtConfig.initialize(admin, address(stETH), address(rETH), address(cbETH));
+
+        vm.startPrank(admin);
+        lrtConfig.grantRole(LRTConstants.MANAGER, manager);
+        vm.stopPrank();
+    }
+
+    function test_RevertWhenAssetIsZero() external {
+        vm.startPrank(manager);
+        vm.expectRevert(UtilLib.ZeroAddressNotAllowed.selector);
+        lrtConfig.addNewSupportedAsset(address(0), 1000);
+        vm.stopPrank();
+    }
+
+    function test_RevertAddNewSupportedAssetIfNotManager() external {
+        vm.startPrank(alice);
+        bytes memory revertData = abi.encodeWithSelector(
+            IAccessControl.AccessControlUnauthorizedAccount.selector, alice, LRTConstants.MANAGER
+        );
+        vm.expectRevert(revertData);
+        lrtConfig.addNewSupportedAsset(address(stETH), 1000);
+        vm.stopPrank();
+    }
+
+    function test_RevertAddNewSupportedAssetIfAssetAlreadySupported() external {
+        vm.startPrank(manager);
+        vm.expectRevert(ILRTConfig.AssetAlreadySupported.selector);
+        lrtConfig.addNewSupportedAsset(address(stETH), 1000);
+        vm.stopPrank();
+    }
+
+    function test_AddNewSupportedAsset() external {
+        uint256 depositLimit = 1000;
+        MockToken newToken = new MockToken("New Token", "NT");
+
+        vm.startPrank(manager);
+        lrtConfig.addNewSupportedAsset(address(newToken), depositLimit);
+        vm.stopPrank();
+
+        assertEq(lrtConfig.depositLimitByAsset(address(newToken)), depositLimit);
+    }
+}
+
+contract LRTConfigUpdateAssetCapacityTest is LRTConfigTest {
+    function setUp() public override {
+        super.setUp();
+
+        lrtConfig.initialize(admin, address(stETH), address(rETH), address(cbETH));
+
+        vm.startPrank(admin);
+        lrtConfig.grantRole(LRTConstants.MANAGER, manager);
+        vm.stopPrank();
+    }
+
+    function test_RevertUpdateAssetCapacityIfNotManager() external {
+        vm.startPrank(alice);
+        bytes memory revertData = abi.encodeWithSelector(
+            IAccessControl.AccessControlUnauthorizedAccount.selector, alice, LRTConstants.MANAGER
+        );
+        vm.expectRevert(revertData);
+        lrtConfig.updateAssetCapacity(address(stETH), 1000);
+        vm.stopPrank();
+    }
+
+    function test_RevertUpdateAssetCapacityWhenNotAcceptedAsset() external {
+        vm.startPrank(manager);
+        MockToken randomToken = new MockToken("Random Token", "RT");
+        vm.expectRevert(ILRTConfig.AssetNotSupported.selector);
+        lrtConfig.updateAssetCapacity(address(randomToken), 1000);
+        vm.stopPrank();
+    }
+
+    function test_updateAssetCapacity() external {
+        uint256 depositLimit = 1000;
+
+        vm.startPrank(manager);
+        lrtConfig.updateAssetCapacity(address(stETH), depositLimit);
+        lrtConfig.updateAssetCapacity(address(rETH), depositLimit);
+
+        expectEmit();
+        emit AssetDepositLimitUpdate(address(cbETH), depositLimit);
+        lrtConfig.updateAssetCapacity(address(cbETH), depositLimit);
+
+        vm.stopPrank();
+
+        assertEq(lrtConfig.depositLimitByAsset(address(stETH)), depositLimit);
+        assertEq(lrtConfig.depositLimitByAsset(address(rETH)), depositLimit);
+        assertEq(lrtConfig.depositLimitByAsset(address(cbETH)), depositLimit);
+    }
+}
+
+contract LRTConfigUpdateAssetStrategyTest is LRTConfigTest {
+    function setUp() public override {
+        super.setUp();
+
+        lrtConfig.initialize(admin, address(stETH), address(rETH), address(cbETH));
+
+        vm.startPrank(admin);
+        lrtConfig.grantRole(LRTConstants.MANAGER, manager);
+        vm.stopPrank();
+    }
+
+    function test_RevertUpdateAssetStrategyIfNotAdmin() external {
+        vm.startPrank(alice);
+        bytes memory revertData = abi.encodeWithSelector(
+            IAccessControl.AccessControlUnauthorizedAccount.selector, alice, lrtConfig.DEFAULT_ADMIN_ROLE()
+        );
+        vm.expectRevert(revertData);
+        lrtConfig.updateAssetStrategy(address(stETH), address(this));
+        vm.stopPrank();
+    }
+
+    function test_RevertWhenAssetIsNotSupported() external {
+        MockToken randomToken = new MockToken("Random Token", "RT");
+        address strategy = makeAddr("strategy");
+
+        vm.startPrank(admin);
+        vm.expectRevert(ILRTConfig.AssetNotSupported.selector);
+        lrtConfig.updateAssetStrategy(address(randomToken), strategy);
+        vm.stopPrank();
+    }
+
+    function test_RevertWhenStrategyAddressIsZero() external {
+        vm.startPrank(admin);
+        vm.expectRevert(UtilLib.ZeroAddressNotAllowed.selector);
+        lrtConfig.updateAssetStrategy(address(stETH), address(0));
+        vm.stopPrank();
+    }
+
+    function test_RevertWhenSameStrategyWasAlreadyAddedBeforeForAsset() external {
+        address strategy = makeAddr("strategy");
+        vm.startPrank(admin);
+        lrtConfig.updateAssetStrategy(address(stETH), strategy);
+
+        // revert when same strategy was already added before for asset
+        vm.expectRevert(ILRTConfig.ValueAlreadyInUse.selector);
+        lrtConfig.updateAssetStrategy(address(stETH), strategy);
+        vm.stopPrank();
+    }
+
+    function test_UpdateAssetStrategy() external {
+        address strategy = makeAddr("strategy");
+
+        vm.startPrank(admin);
+        lrtConfig.updateAssetStrategy(address(stETH), strategy);
+        vm.stopPrank();
+
+        assertEq(lrtConfig.assetStrategy(address(stETH)), strategy);
+    }
+}
+
+contract LRTConfigGettersTest is LRTConfigTest {
+    function setUp() public override {
+        super.setUp();
+
+        lrtConfig.initialize(admin, address(stETH), address(rETH), address(cbETH));
+
+        vm.startPrank(admin);
+        lrtConfig.grantRole(LRTConstants.MANAGER, manager);
+        vm.stopPrank();
+    }
+
+    function test_GetLSTToken() external {
+        assertEq(lrtConfig.getLSTToken(LRTConstants.ST_ETH_TOKEN), address(stETH));
+        assertEq(lrtConfig.getLSTToken(LRTConstants.R_ETH_TOKEN), address(rETH));
+        assertEq(lrtConfig.getLSTToken(LRTConstants.CB_ETH_TOKEN), address(cbETH));
+    }
+
+    function test_GetContract() external {
+        vm.startPrank(admin);
+        address oracle = makeAddr("oracle");
+        address depositPool = makeAddr("depositPool");
+        address eigenStrategyManager = makeAddr("eigenStrategyManager");
+        lrtConfig.setContract(LRTConstants.LRT_ORACLE, oracle);
+        lrtConfig.setContract(LRTConstants.LRT_DEPOSIT_POOL, depositPool);
+        lrtConfig.setContract(LRTConstants.EIGEN_STRATEGY_MANAGER, eigenStrategyManager);
+        vm.stopPrank();
+
+        assertEq(lrtConfig.getContract(LRTConstants.LRT_ORACLE), address(oracle));
+        assertEq(lrtConfig.getContract(LRTConstants.LRT_DEPOSIT_POOL), address(depositPool));
+        assertEq(lrtConfig.getContract(LRTConstants.EIGEN_STRATEGY_MANAGER), address(eigenStrategyManager));
+    }
+}
+
+contract LRTConfigSettersTest is LRTConfigTest {
+    function setUp() public override {
+        super.setUp();
+
+        lrtConfig.initialize(admin, address(stETH), address(rETH), address(cbETH));
+
+        vm.startPrank(admin);
+        lrtConfig.grantRole(LRTConstants.MANAGER, manager);
+        vm.stopPrank();
+    }
+
+    function test_RevertSetTokenIfNotAdmin() external {
+        vm.startPrank(alice);
+        bytes memory revertData = abi.encodeWithSelector(
+            IAccessControl.AccessControlUnauthorizedAccount.selector, alice, lrtConfig.DEFAULT_ADMIN_ROLE()
+        );
+        vm.expectRevert(revertData);
+        lrtConfig.setToken(LRTConstants.ST_ETH_TOKEN, address(this));
+        vm.stopPrank();
+    }
+
+    function test_RevertSetTokenIfTokenAddressIsZero() external {
+        vm.startPrank(admin);
+        vm.expectRevert(UtilLib.ZeroAddressNotAllowed.selector);
+        lrtConfig.setToken(LRTConstants.ST_ETH_TOKEN, address(0));
+        vm.stopPrank();
+    }
+
+    function test_RevertSetTokenIfTokenAlreadySet() external {
+        address newToken = makeAddr("newToken");
+        vm.startPrank(admin);
+        lrtConfig.setToken(LRTConstants.ST_ETH_TOKEN, newToken);
+
+        // revert when same token was already set before
+        vm.expectRevert(ILRTConfig.ValueAlreadyInUse.selector);
+        lrtConfig.setToken(LRTConstants.ST_ETH_TOKEN, newToken);
+        vm.stopPrank();
+    }
+
+    function test_SetToken() external {
+        address newToken = makeAddr("newToken");
+
+        vm.startPrank(admin);
+        lrtConfig.setToken(LRTConstants.ST_ETH_TOKEN, newToken);
+        vm.stopPrank();
+
+        assertEq(lrtConfig.tokenMap(LRTConstants.ST_ETH_TOKEN), newToken);
+    }
+
+    function test_RevertSetContractIfNotAdmin() external {
+        vm.startPrank(alice);
+        bytes memory revertData = abi.encodeWithSelector(
+            IAccessControl.AccessControlUnauthorizedAccount.selector, alice, lrtConfig.DEFAULT_ADMIN_ROLE()
+        );
+        vm.expectRevert(revertData);
+        lrtConfig.setContract(LRTConstants.LRT_ORACLE, address(this));
+        vm.stopPrank();
+    }
+
+    function test_RevertSetContractIfContractAddressIsZero() external {
+        vm.startPrank(admin);
+        vm.expectRevert(UtilLib.ZeroAddressNotAllowed.selector);
+        lrtConfig.setContract(LRTConstants.LRT_ORACLE, address(0));
+        vm.stopPrank();
+    }
+
+    function test_RevertSetContractIfContractAlreadySet() external {
+        address newContract = makeAddr("newContract");
+        vm.startPrank(admin);
+        lrtConfig.setContract(LRTConstants.LRT_ORACLE, newContract);
+
+        // revert when same contract was already set before
+        vm.expectRevert(ILRTConfig.ValueAlreadyInUse.selector);
+        lrtConfig.setContract(LRTConstants.LRT_ORACLE, newContract);
+        vm.stopPrank();
+    }
+
+    function test_SetContract() external {
+        address newContract = makeAddr("newContract");
+
+        vm.startPrank(admin);
+        lrtConfig.setContract(LRTConstants.LRT_ORACLE, newContract);
+        vm.stopPrank();
+
+        assertEq(lrtConfig.contractMap(LRTConstants.LRT_ORACLE), newContract);
+    }
+}

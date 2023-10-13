@@ -6,6 +6,5 @@ interface ILRTOracle {
     event UpdatedLRTConfig(address indexed _lrtConfig);
 
     // methods
-
     function assetER(address asset) external view returns (uint256);
 }
