@@ -5,10 +5,7 @@ import { UtilLib } from "./utils/UtilLib.sol";
 import { LRTConfigRoleChecker, ILRTConfig } from "./utils/LRTConfigRoleChecker.sol";
 
 import { ERC20Upgradeable, Initializable } from "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
-import {
-    AccessControlUpgradeable,
-    IAccessControl
-} from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
+import { AccessControlUpgradeable } from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 
 /// @title rsETH token Contract
@@ -35,6 +32,7 @@ contract RSETH is
     /// @param _admin Admin address
     /// @param _lrtConfig LRT config address
     function initialize(address _admin, address _lrtConfig) external initializer {
+        UtilLib.checkNonZeroAddress(_admin);
         UtilLib.checkNonZeroAddress(_lrtConfig);
 
         __ERC20_init("rsETH", "rsETH");

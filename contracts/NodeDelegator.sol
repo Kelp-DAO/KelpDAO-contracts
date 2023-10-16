@@ -44,7 +44,6 @@ contract NodeDelegator is INodeDelegator, LRTConfigRoleChecker, PausableUpgradea
         onlyLRTManager
     {
         address strategy = lrtConfig.assetStrategy(asset);
-        UtilLib.checkNonZeroAddress(strategy);
         IERC20 token = IERC20(asset);
         address eigenlayerStrategyManagerAddress = lrtConfig.getContract(LRTConstants.EIGEN_STRATEGY_MANAGER);
         IEigenStrategyManager(eigenlayerStrategyManagerAddress).depositIntoStrategy(
@@ -85,18 +84,23 @@ contract NodeDelegator is INodeDelegator, LRTConfigRoleChecker, PausableUpgradea
         }
     }
 
-    /// @notice Transfers an asset back to the LRT deposit pool
+    /// @notice Fetches balance of all assets staked in eigen layer through this contract
     /// @return assets the assets that the node delegator has deposited into strategies
     /// @return assetBalances the balances of the assets that the node delegator has deposited into strategies
-    function getAssetBalances() external view override returns (address[] memory, uint256[] memory) {
+    function getAssetBalances()
+        external
+        view
+        override
+        returns (address[] memory assets, uint256[] memory assetBalances)
+    {
         address eigenlayerStrategyManagerAddress = lrtConfig.getContract(LRTConstants.EIGEN_STRATEGY_MANAGER);
 
         (IStrategy[] memory strategies,) =
             IEigenStrategyManager(eigenlayerStrategyManagerAddress).getDeposits(address(this));
 
         uint256 strategiesLength = strategies.length;
-        address[] memory assets = new address[](strategiesLength);
-        uint256[] memory assetBalances = new uint256[](strategiesLength);
+        assets = new address[](strategiesLength);
+        assetBalances = new uint256[](strategiesLength);
 
         for (uint256 i = 0; i < strategiesLength;) {
             assets[i] = address(IStrategy(strategies[i]).underlyingToken());
@@ -105,12 +109,11 @@ contract NodeDelegator is INodeDelegator, LRTConfigRoleChecker, PausableUpgradea
                 ++i;
             }
         }
-        return (assets, assetBalances);
     }
 
-    /// @dev Returns the balance of an asset that the node delegator has deposited into a strategy
+    /// @dev Returns the balance of an asset that the node delegator has deposited into the el strategy
     /// @param asset the asset to get the balance of
-    /// @return the balance of the asset
+    /// @return stakedBalance the balance of the asset
     function getAssetBalance(address asset) external view override returns (uint256) {
         address strategy = lrtConfig.assetStrategy(asset);
         return IStrategy(strategy).userUnderlyingView(address(this));

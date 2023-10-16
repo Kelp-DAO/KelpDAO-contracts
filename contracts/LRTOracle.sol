@@ -5,6 +5,7 @@ import { UtilLib } from "./utils/UtilLib.sol";
 import { LRTConstants } from "./utils/LRTConstants.sol";
 import { LRTConfigRoleChecker, ILRTConfig } from "./utils/LRTConfigRoleChecker.sol";
 
+import { IRSETH } from "./interfaces/IRSETH.sol";
 import { ILRTOracle } from "./interfaces/ILRTOracle.sol";
 import { ILRTDepositPool } from "./interfaces/ILRTDepositPool.sol";
 import { INodeDelegator } from "./interfaces/INodeDelegator.sol";
@@ -41,19 +42,23 @@ contract LRTOracle is ILRTOracle, LRTConfigRoleChecker, PausableUpgradeable {
 
     /// @dev Uses the most recently updated asset exchange rates to compute the total ETH in reserve.
     function updateRSETHRate() external {
-        address rsETHToken = lrtConfig.getLSTToken(LRTConstants.RS_ETH_TOKEN);
-        uint256 rsEthSupply = IERC20(rsETHToken).totalSupply();
+        address rsETHTokenAddress = lrtConfig.rsETH();
+        uint256 rsEthSupply = IRSETH(rsETHTokenAddress).totalSupply();
 
         if (rsEthSupply == 0) {
-            assetER[rsETHToken] = 1e18;
+            assetER[rsETHTokenAddress] = 1e18;
             return;
         }
 
-        uint256 totalETHInPool;
+        uint256 totalETHInPool; // totalETHInPool = eth in lrtDepositPool + eth in ndcs + eth already staked in eigen
+            // layer
         address lrtDepositPool = lrtConfig.getContract(LRTConstants.LRT_DEPOSIT_POOL);
 
         address[] memory supportedAssets = lrtConfig.getSupportedAssetList();
-        for (uint16 asset_idx; asset_idx < supportedAssets.length;) {
+        uint256 supportedAssetCount = supportedAssets.length;
+
+        // calculate lrtDepositPool eth eqivalent balance
+        for (uint16 asset_idx; asset_idx < supportedAssetCount;) {
             address asset = supportedAssets[asset_idx];
             totalETHInPool += IERC20(asset).balanceOf(lrtDepositPool) * assetER[asset];
 
@@ -61,13 +66,14 @@ contract LRTOracle is ILRTOracle, LRTConfigRoleChecker, PausableUpgradeable {
                 ++asset_idx;
             }
         }
-
+        // calculate ndcs eth eqivalent balance
         address[] memory ndcs = ILRTDepositPool(lrtDepositPool).getNodeDelegatorQueue();
-        for (uint16 ndc_idx; ndc_idx < ndcs.length;) {
+        uint256 ndcCount = ndcs.length;
+        for (uint16 ndc_idx; ndc_idx < ndcCount;) {
             address ndc = ndcs[ndc_idx];
 
             // calculate ndc eth amount
-            for (uint16 asset_idx; asset_idx < supportedAssets.length;) {
+            for (uint16 asset_idx; asset_idx < supportedAssetCount;) {
                 address asset = supportedAssets[asset_idx];
                 totalETHInPool += IERC20(asset).balanceOf(ndc) * assetER[asset];
                 unchecked {
@@ -80,7 +86,8 @@ contract LRTOracle is ILRTOracle, LRTConfigRoleChecker, PausableUpgradeable {
                 address[] memory assets,
                 uint256[] memory balances // wei
             ) = INodeDelegator(ndc).getAssetBalances();
-            for (uint16 asset_idx = 0; asset_idx < assets.length;) {
+            uint256 ndcAssetCount = assets.length;
+            for (uint16 asset_idx = 0; asset_idx < ndcAssetCount;) {
                 totalETHInPool += balances[asset_idx] * assetER[assets[asset_idx]];
                 unchecked {
                     ++asset_idx;
@@ -92,7 +99,7 @@ contract LRTOracle is ILRTOracle, LRTConfigRoleChecker, PausableUpgradeable {
             }
         }
 
-        assetER[rsETHToken] = totalETHInPool / rsEthSupply;
+        assetER[rsETHTokenAddress] = totalETHInPool / rsEthSupply;
     }
 
     /// @dev Triggers stopped state. Contract must not be paused.

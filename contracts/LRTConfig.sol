@@ -2,8 +2,8 @@
 pragma solidity 0.8.21;
 
 import { UtilLib } from "./utils/UtilLib.sol";
-import { ILRTConfig } from "./interfaces/ILRTConfig.sol";
 import { LRTConstants } from "./utils/LRTConstants.sol";
+import { ILRTConfig } from "./interfaces/ILRTConfig.sol";
 
 import { AccessControlUpgradeable } from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 
@@ -17,6 +17,8 @@ contract LRTConfig is ILRTConfig, AccessControlUpgradeable {
     mapping(address token => address strategy) public override assetStrategy;
 
     address[] public supportedAssetList;
+
+    address public rsETH;
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
@@ -35,11 +37,21 @@ contract LRTConfig is ILRTConfig, AccessControlUpgradeable {
     /// @param stETH stETH address
     /// @param rETH rETH address
     /// @param cbETH cbETH address
-    function initialize(address admin, address stETH, address rETH, address cbETH) external initializer {
+    function initialize(
+        address admin,
+        address stETH,
+        address rETH,
+        address cbETH,
+        address _rsETH
+    )
+        external
+        initializer
+    {
         UtilLib.checkNonZeroAddress(admin);
         UtilLib.checkNonZeroAddress(stETH);
         UtilLib.checkNonZeroAddress(rETH);
         UtilLib.checkNonZeroAddress(cbETH);
+        UtilLib.checkNonZeroAddress(_rsETH);
 
         __AccessControl_init();
         _setToken(LRTConstants.R_ETH_TOKEN, rETH);
@@ -50,6 +62,8 @@ contract LRTConfig is ILRTConfig, AccessControlUpgradeable {
         _addNewSupportedAsset(cbETH, 100_000 ether);
 
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
+
+        rsETH = _rsETH;
     }
 
     /// @dev Adds a new supported asset
@@ -124,6 +138,13 @@ contract LRTConfig is ILRTConfig, AccessControlUpgradeable {
     /*//////////////////////////////////////////////////////////////
                             SETTERS
     //////////////////////////////////////////////////////////////*/
+    /// @dev Sets the rsETH contract address. Only callable by the admin
+    /// @param _rsETH rsETH contract address
+    function setRSETH(address _rsETH) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        UtilLib.checkNonZeroAddress(_rsETH);
+        rsETH = _rsETH;
+    }
+
     function setToken(bytes32 tokenKey, address assetAddress) external onlyRole(DEFAULT_ADMIN_ROLE) {
         _setToken(tokenKey, assetAddress);
     }

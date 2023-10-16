@@ -5,8 +5,6 @@ library LRTConstants {
     //tokens
     //rETH token
     bytes32 public constant R_ETH_TOKEN = keccak256("R_ETH_TOKEN");
-    //rsETH token
-    bytes32 public constant RS_ETH_TOKEN = keccak256("RS_ETH_TOKEN");
     //stETH token
     bytes32 public constant ST_ETH_TOKEN = keccak256("ST_ETH_TOKEN");
     //cbETH token

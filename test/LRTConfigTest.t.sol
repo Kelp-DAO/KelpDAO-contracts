@@ -16,10 +16,14 @@ contract LRTConfigTest is BaseTest {
 
     event AssetDepositLimitUpdate(address asset, uint256 depositLimit);
 
-    address public manager = makeAddr("manager");
+    address public manager;
+    address public rsethMock;
 
     function setUp() public virtual override {
         super.setUp();
+
+        manager = makeAddr("manager");
+        rsethMock = makeAddr("rsethMock");
 
         ProxyAdmin proxyAdmin = new ProxyAdmin(admin);
         LRTConfig lrtConfigImpl = new LRTConfig();
@@ -35,45 +39,52 @@ contract LRTConfigTest is BaseTest {
 
 contract LRTConfigInitialize is LRTConfigTest {
     function test_RevertInitializeIfAlreadyInitialized() external {
-        lrtConfig.initialize(admin, address(stETH), address(rETH), address(cbETH));
+        lrtConfig.initialize(admin, address(stETH), address(rETH), address(cbETH), rsethMock);
 
         vm.startPrank(admin);
         // cannot initialize again
         vm.expectRevert(Initializable.InvalidInitialization.selector);
-        lrtConfig.initialize(admin, address(stETH), address(rETH), address(cbETH));
+        lrtConfig.initialize(admin, address(stETH), address(rETH), address(cbETH), rsethMock);
         vm.stopPrank();
     }
 
     function test_RevertInitializeIfAdminIsZero() external {
         vm.startPrank(admin);
         vm.expectRevert(UtilLib.ZeroAddressNotAllowed.selector);
-        lrtConfig.initialize(address(0), address(stETH), address(rETH), address(cbETH));
+        lrtConfig.initialize(address(0), address(stETH), address(rETH), address(cbETH), rsethMock);
         vm.stopPrank();
     }
 
     function test_RevertInitializeIfStETHIsZero() external {
         vm.startPrank(admin);
         vm.expectRevert(UtilLib.ZeroAddressNotAllowed.selector);
-        lrtConfig.initialize(admin, address(0), address(rETH), address(cbETH));
+        lrtConfig.initialize(admin, address(0), address(rETH), address(cbETH), rsethMock);
         vm.stopPrank();
     }
 
     function test_RevertInitializeIfRETHIsZero() external {
         vm.startPrank(admin);
         vm.expectRevert(UtilLib.ZeroAddressNotAllowed.selector);
-        lrtConfig.initialize(admin, address(stETH), address(0), address(cbETH));
+        lrtConfig.initialize(admin, address(stETH), address(0), address(cbETH), rsethMock);
         vm.stopPrank();
     }
 
     function test_RevertInitializeIfCbETHIsZero() external {
         vm.startPrank(admin);
         vm.expectRevert(UtilLib.ZeroAddressNotAllowed.selector);
-        lrtConfig.initialize(admin, address(stETH), address(rETH), address(0));
+        lrtConfig.initialize(admin, address(stETH), address(rETH), address(0), rsethMock);
+        vm.stopPrank();
+    }
+
+    function test_RevertWhenRSETHIsZeroAddress() external {
+        vm.startPrank(admin);
+        vm.expectRevert(UtilLib.ZeroAddressNotAllowed.selector);
+        lrtConfig.initialize(admin, address(stETH), address(rETH), address(cbETH), address(0));
         vm.stopPrank();
     }
 
     function test_SetInitializableValues() external {
-        lrtConfig.initialize(admin, address(stETH), address(rETH), address(cbETH));
+        lrtConfig.initialize(admin, address(stETH), address(rETH), address(cbETH), rsethMock);
 
         assertEq(lrtConfig.tokenMap(LRTConstants.ST_ETH_TOKEN), address(stETH));
         assertEq(lrtConfig.tokenMap(LRTConstants.R_ETH_TOKEN), address(rETH));
@@ -91,7 +102,7 @@ contract LRTConfigAddNewSupportedAssetTest is LRTConfigTest {
     function setUp() public override {
         super.setUp();
 
-        lrtConfig.initialize(admin, address(stETH), address(rETH), address(cbETH));
+        lrtConfig.initialize(admin, address(stETH), address(rETH), address(cbETH), rsethMock);
 
         vm.startPrank(admin);
         lrtConfig.grantRole(LRTConstants.MANAGER, manager);
@@ -138,7 +149,7 @@ contract LRTConfigUpdateAssetCapacityTest is LRTConfigTest {
     function setUp() public override {
         super.setUp();
 
-        lrtConfig.initialize(admin, address(stETH), address(rETH), address(cbETH));
+        lrtConfig.initialize(admin, address(stETH), address(rETH), address(cbETH), rsethMock);
 
         vm.startPrank(admin);
         lrtConfig.grantRole(LRTConstants.MANAGER, manager);
@@ -186,7 +197,7 @@ contract LRTConfigUpdateAssetStrategyTest is LRTConfigTest {
     function setUp() public override {
         super.setUp();
 
-        lrtConfig.initialize(admin, address(stETH), address(rETH), address(cbETH));
+        lrtConfig.initialize(admin, address(stETH), address(rETH), address(cbETH), rsethMock);
 
         vm.startPrank(admin);
         lrtConfig.grantRole(LRTConstants.MANAGER, manager);
@@ -246,7 +257,7 @@ contract LRTConfigGettersTest is LRTConfigTest {
     function setUp() public override {
         super.setUp();
 
-        lrtConfig.initialize(admin, address(stETH), address(rETH), address(cbETH));
+        lrtConfig.initialize(admin, address(stETH), address(rETH), address(cbETH), rsethMock);
 
         vm.startPrank(admin);
         lrtConfig.grantRole(LRTConstants.MANAGER, manager);
@@ -276,14 +287,43 @@ contract LRTConfigGettersTest is LRTConfigTest {
 }
 
 contract LRTConfigSettersTest is LRTConfigTest {
+    address public newRSETH;
+
     function setUp() public override {
         super.setUp();
 
-        lrtConfig.initialize(admin, address(stETH), address(rETH), address(cbETH));
+        lrtConfig.initialize(admin, address(stETH), address(rETH), address(cbETH), rsethMock);
 
         vm.startPrank(admin);
         lrtConfig.grantRole(LRTConstants.MANAGER, manager);
         vm.stopPrank();
+
+        newRSETH = makeAddr("newRSETH");
+    }
+
+    function test_RevertSetRSETHIfNotAdmin() external {
+        vm.startPrank(alice);
+        bytes memory revertData = abi.encodeWithSelector(
+            IAccessControl.AccessControlUnauthorizedAccount.selector, alice, lrtConfig.DEFAULT_ADMIN_ROLE()
+        );
+        vm.expectRevert(revertData);
+        lrtConfig.setRSETH(newRSETH);
+        vm.stopPrank();
+    }
+
+    function test_RevertSetRSETHIfRSETHAddressIsZero() external {
+        vm.startPrank(admin);
+        vm.expectRevert(UtilLib.ZeroAddressNotAllowed.selector);
+        lrtConfig.setRSETH(address(0));
+        vm.stopPrank();
+    }
+
+    function test_SetRSETH() external {
+        vm.startPrank(admin);
+        lrtConfig.setRSETH(newRSETH);
+        vm.stopPrank();
+
+        assertEq(lrtConfig.rsETH(), newRSETH);
     }
 
     function test_RevertSetTokenIfNotAdmin() external {

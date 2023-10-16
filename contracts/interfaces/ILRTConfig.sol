@@ -17,6 +17,8 @@ interface ILRTConfig {
 
     // methods
 
+    function rsETH() external view returns (address);
+
     function assetStrategy(address asset) external view returns (address);
 
     function isSupportedAsset(address asset) external view returns (bool);
