@@ -117,6 +117,72 @@ contract LRTDepositPoolDepositAsset is LRTDepositPoolTest {
     }
 }
 
+contract LRTDepositPoolGetAssetCurrentLimit is LRTDepositPoolTest {
+    address public rETHAddress;
+
+    function setUp() public override {
+        super.setUp();
+
+        // initialize LRTDepositPool
+        lrtDepositPool.initialize(address(lrtConfig));
+
+        rETHAddress = address(rETH);
+
+        // add manager role within LRTConfig
+        vm.startPrank(admin);
+        lrtConfig.grantRole(LRTConstants.MANAGER, manager);
+        vm.stopPrank();
+    }
+
+    function test_GetAssetCurrentLimit() external {
+        vm.startPrank(manager);
+        lrtConfig.updateAssetCapacity(address(stETH), 1 ether);
+        vm.stopPrank();
+
+        assertEq(lrtDepositPool.getAssetCurrentLimit(address(stETH)), 1 ether, "Asset current limit is not set");
+    }
+
+    function test_GetAssetCurrentLimitAfterAssetIsDeposited() external {
+        vm.startPrank(manager);
+        lrtConfig.updateAssetCapacity(address(stETH), 10 ether);
+        vm.stopPrank();
+
+        // deposit 1 ether stETH
+        vm.startPrank(alice);
+        stETH.approve(address(lrtDepositPool), 6 ether);
+        lrtDepositPool.depositAsset(address(stETH), 6 ether);
+        vm.stopPrank();
+
+        assertEq(lrtDepositPool.getAssetCurrentLimit(address(stETH)), 4 ether, "Asset current limit is not set");
+    }
+}
+
+contract LRTDepositPoolGetNodeDelegatorQueue is LRTDepositPoolTest {
+    function setUp() public override {
+        super.setUp();
+
+        // initialize LRTDepositPool
+        lrtDepositPool.initialize(address(lrtConfig));
+    }
+
+    function test_GetNodeDelegatorQueue() external {
+        address nodeDelegatorContractOne = makeAddr("nodeDelegatorContractOne");
+        address nodeDelegatorContractTwo = makeAddr("nodeDelegatorContractTwo");
+        address nodeDelegatorContractThree = makeAddr("nodeDelegatorContractOne");
+
+        address[] memory nodeDelegatorQueue = new address[](3);
+        nodeDelegatorQueue[0] = nodeDelegatorContractOne;
+        nodeDelegatorQueue[1] = nodeDelegatorContractTwo;
+        nodeDelegatorQueue[2] = nodeDelegatorContractThree;
+
+        vm.startPrank(admin);
+        lrtDepositPool.addNodeDelegatorContractToQueue(nodeDelegatorQueue);
+        vm.stopPrank();
+
+        assertEq(lrtDepositPool.getNodeDelegatorQueue(), nodeDelegatorQueue, "Node delegator queue is not set");
+    }
+}
+
 contract LRTDepositPoolAddNodeDelegatorContractToQueue is LRTDepositPoolTest {
     address public nodeDelegatorContractOne;
     address public nodeDelegatorContractTwo;

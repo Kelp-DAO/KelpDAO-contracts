@@ -37,6 +37,23 @@ contract LRTDepositPool is ILRTDepositPool, LRTConfigRoleChecker, PausableUpgrad
         lrtConfig = ILRTConfig(lrtConfigAddr);
     }
 
+    // view functions
+
+    /// @notice gets the current limit of asset deposit
+    /// @param _asset Asset address
+    /// @return currentLimit Current limit of asset deposit
+    function getAssetCurrentLimit(address _asset) external view override returns (uint256) {
+        return lrtConfig.depositLimitByAsset(_asset) - totalAssetDeposits[_asset];
+    }
+
+    /// @dev get node delegator queue
+    /// @return nodeDelegatorQueue Array of node delegator contract addresses
+    function getNodeDelegatorQueue() external view override returns (address[] memory) {
+        return nodeDelegatorQueue;
+    }
+
+    // write functions
+
     /// @notice helps user stake LST to the protocol
     /// @param asset LST asset address to stake
     /// @param depositAmount LST asset amount to stake
@@ -172,11 +189,5 @@ contract LRTDepositPool is ILRTDepositPool, LRTConfigRoleChecker, PausableUpgrad
                 ++i;
             }
         }
-    }
-
-    /// @dev get node delegator queue
-    /// @return nodeDelegatorQueue Array of node delegator contract addresses
-    function getNodeDelegatorQueue() external view override returns (address[] memory) {
-        return nodeDelegatorQueue;
     }
 }
