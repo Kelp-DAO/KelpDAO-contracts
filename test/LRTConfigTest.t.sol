@@ -15,6 +15,7 @@ contract LRTConfigTest is BaseTest {
     LRTConfig public lrtConfig;
 
     event AssetDepositLimitUpdate(address asset, uint256 depositLimit);
+    event RemovedSupportedAsset(address asset);
 
     address public manager;
     address public rsethMock;
@@ -142,6 +143,53 @@ contract LRTConfigAddNewSupportedAssetTest is LRTConfigTest {
         vm.stopPrank();
 
         assertEq(lrtConfig.depositLimitByAsset(address(newToken)), depositLimit);
+    }
+}
+
+contract LRTConfigRemoveSupportedAssetTest is LRTConfigTest {
+    function setUp() public override {
+        super.setUp();
+
+        lrtConfig.initialize(admin, address(stETH), address(rETH), address(cbETH), rsethMock);
+
+        vm.startPrank(admin);
+        lrtConfig.grantRole(LRTConstants.MANAGER, manager);
+        vm.stopPrank();
+    }
+
+    function test_RevertRemoveSupportedAssetIfNotManager() external {
+        vm.startPrank(alice);
+        bytes memory revertData = abi.encodeWithSelector(
+            IAccessControl.AccessControlUnauthorizedAccount.selector, alice, LRTConstants.MANAGER
+        );
+        vm.expectRevert(revertData);
+        lrtConfig.removeSupportedAsset(address(stETH));
+        vm.stopPrank();
+    }
+
+    function test_RevertRemoveSupportedAssetIfAssetIsNotSupported() external {
+        MockToken randomToken = new MockToken("Random Token", "RT");
+        vm.startPrank(manager);
+        vm.expectRevert(ILRTConfig.AssetNotSupported.selector);
+        lrtConfig.removeSupportedAsset(address(randomToken));
+        vm.stopPrank();
+    }
+
+    function test_RemoveSupportedAsset() external {
+        vm.startPrank(manager);
+        expectEmit();
+        emit RemovedSupportedAsset(address(stETH));
+        lrtConfig.removeSupportedAsset(address(stETH));
+        vm.stopPrank();
+
+        assertEq(lrtConfig.depositLimitByAsset(address(stETH)), 0);
+        assertTrue(!lrtConfig.isSupportedAsset(address(stETH)));
+
+        // check that sETH was removed from supported asset list
+        address[] memory supportedAssetList = lrtConfig.getSupportedAssetList();
+        assertEq(supportedAssetList.length, 2);
+        assertEq(supportedAssetList[0], address(rETH));
+        assertEq(supportedAssetList[1], address(cbETH));
     }
 }
 

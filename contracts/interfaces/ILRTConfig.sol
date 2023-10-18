@@ -13,6 +13,7 @@ interface ILRTConfig {
     event SetToken(bytes32 key, address tokenAddr);
     event SetContract(bytes32 key, address contractAddr);
     event AddedNewSupportedAsset(address asset, uint256 depositLimit);
+    event RemovedSupportedAsset(address asset);
     event AssetDepositLimitUpdate(address asset, uint256 depositLimit);
 
     // methods
