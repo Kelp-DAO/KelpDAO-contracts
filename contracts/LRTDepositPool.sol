@@ -37,13 +37,15 @@ contract LRTDepositPool is ILRTDepositPool, LRTConfigRoleChecker, PausableUpgrad
         lrtConfig = ILRTConfig(lrtConfigAddr);
     }
 
-    // view functions
+    /*//////////////////////////////////////////////////////////////
+                            view functions
+    //////////////////////////////////////////////////////////////*/
 
     /// @notice gets the current limit of asset deposit
-    /// @param _asset Asset address
+    /// @param asset Asset address
     /// @return currentLimit Current limit of asset deposit
-    function getAssetCurrentLimit(address _asset) external view override returns (uint256) {
-        return lrtConfig.depositLimitByAsset(_asset) - totalAssetDeposits[_asset];
+    function getAssetCurrentLimit(address asset) external view override returns (uint256) {
+        return lrtConfig.depositLimitByAsset(asset) - totalAssetDeposits[asset];
     }
 
     /// @dev get node delegator queue
@@ -52,7 +54,33 @@ contract LRTDepositPool is ILRTDepositPool, LRTConfigRoleChecker, PausableUpgrad
         return nodeDelegatorQueue;
     }
 
-    // write functions
+    /// @dev provides asset amount distribution data among depositPool, NDCs and eigenLayer
+    /// @param asset the asset to get the total amount of
+    /// @return assetLyingInDepositPool asset amount lying in this LRTDepositPool contract
+    /// @return assetLyingInNDCs asset amount sum lying in all NDC contract
+    /// @return assetStakedInEigenLayer asset amount staked in eigen layer through all NDCs
+    function getAssetDistributionData(address asset)
+        external
+        view
+        override
+        onlySupportedAsset(asset)
+        returns (uint256 assetLyingInDepositPool, uint256 assetLyingInNDCs, uint256 assetStakedInEigenLayer)
+    {
+        assetLyingInDepositPool = IERC20(asset).balanceOf(address(this));
+
+        uint256 ndcsCount = nodeDelegatorQueue.length;
+        for (uint256 i; i < ndcsCount;) {
+            assetLyingInNDCs += IERC20(asset).balanceOf(nodeDelegatorQueue[i]);
+            assetStakedInEigenLayer += INodeDelegator(nodeDelegatorQueue[i]).getAssetBalance(asset);
+            unchecked {
+                ++i;
+            }
+        }
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                            write functions
+    //////////////////////////////////////////////////////////////*/
 
     /// @notice helps user stake LST to the protocol
     /// @param asset LST asset address to stake
@@ -99,7 +127,7 @@ contract LRTDepositPool is ILRTDepositPool, LRTConfigRoleChecker, PausableUpgrad
 
         // calculate rseth amount to mint based on asset amount and asset exchange rate
         address rsethToken = lrtConfig.rsETH();
-        rsethAmountToMint = (_amount * lrtOracle.assetER(_asset)) / lrtOracle.assetER(address(rsethToken));
+        rsethAmountToMint = (_amount * lrtOracle.getAssetPrice(_asset)) / lrtOracle.getAssetPrice(address(rsethToken));
 
         // mint rseth for user
         IRSETH(rsethToken).mint(msg.sender, rsethAmountToMint);
@@ -107,17 +135,17 @@ contract LRTDepositPool is ILRTDepositPool, LRTConfigRoleChecker, PausableUpgrad
 
     /// @notice add new node delegator contract addresses
     /// @dev only callable by LRT manager
-    /// @param _nodeDelegatorContract Array of NodeDelegator contract addresses
-    function addNodeDelegatorContractToQueue(address[] calldata _nodeDelegatorContract) external onlyLRTAdmin {
-        uint256 length = _nodeDelegatorContract.length;
+    /// @param nodeDelegatorContracts Array of NodeDelegator contract addresses
+    function addNodeDelegatorContractToQueue(address[] calldata nodeDelegatorContracts) external onlyLRTAdmin {
+        uint256 length = nodeDelegatorContracts.length;
         if (nodeDelegatorQueue.length + length > maxNodeDelegatorCount) {
             revert MaximumNodeDelegatorCountReached();
         }
 
         for (uint256 i; i < length;) {
-            UtilLib.checkNonZeroAddress(_nodeDelegatorContract[i]);
-            nodeDelegatorQueue.push(_nodeDelegatorContract[i]);
-            emit AddedProspectiveNodeDelegatorInQueue(_nodeDelegatorContract[i]);
+            UtilLib.checkNonZeroAddress(nodeDelegatorContracts[i]);
+            nodeDelegatorQueue.push(nodeDelegatorContracts[i]);
+            emit AddedProspectiveNodeDelegatorInQueue(nodeDelegatorContracts[i]);
             unchecked {
                 ++i;
             }
@@ -126,40 +154,31 @@ contract LRTDepositPool is ILRTDepositPool, LRTConfigRoleChecker, PausableUpgrad
 
     /// @notice transfer asset to node delegator contract
     /// @dev only callable by LRT manager
-    /// @param _ndcIndex Index of NodeDelegator contract address in nodeDelegatorQueue
-    /// @param _asset Asset address
-    /// @param _amount Asset amount to transfer
+    /// @param ndcIndex Index of NodeDelegator contract address in nodeDelegatorQueue
+    /// @param asset Asset address
+    /// @param amount Asset amount to transfer
     function transferAssetToNodeDelegator(
-        uint256 _ndcIndex,
-        address _asset,
-        uint256 _amount
+        uint256 ndcIndex,
+        address asset,
+        uint256 amount
     )
         external
         nonReentrant
         onlyLRTManager
-        onlySupportedAsset(_asset)
+        onlySupportedAsset(asset)
     {
-        address nodeDelegator = nodeDelegatorQueue[_ndcIndex];
-        if (!IERC20(_asset).transfer(nodeDelegator, _amount)) {
+        address nodeDelegator = nodeDelegatorQueue[ndcIndex];
+        if (!IERC20(asset).transfer(nodeDelegator, amount)) {
             revert TokenTransferFailed();
         }
     }
 
     /// @notice update max node delegator count
     /// @dev only callable by LRT admin
-    /// @param _maxNodeDelegatorCount Maximum count of node delegator
-    function updateMaxNodeDelegatorCount(uint256 _maxNodeDelegatorCount) external onlyLRTAdmin {
-        maxNodeDelegatorCount = _maxNodeDelegatorCount;
+    /// @param maxNodeDelegatorCount_ Maximum count of node delegator
+    function updateMaxNodeDelegatorCount(uint256 maxNodeDelegatorCount_) external onlyLRTAdmin {
+        maxNodeDelegatorCount = maxNodeDelegatorCount_;
         emit MaxNodeDelegatorCountUpdated(maxNodeDelegatorCount);
-    }
-
-    /// @notice Updates the LRT config contract
-    /// @dev only callable by LRT admin
-    /// @param _lrtConfig the new LRT config contract
-    function updateLRTConfig(address _lrtConfig) external onlyLRTAdmin {
-        UtilLib.checkNonZeroAddress(_lrtConfig);
-        lrtConfig = ILRTConfig(_lrtConfig);
-        emit UpdatedLRTConfig(_lrtConfig);
     }
 
     /// @dev Triggers stopped state. Contract must not be paused.
@@ -170,24 +189,5 @@ contract LRTDepositPool is ILRTDepositPool, LRTConfigRoleChecker, PausableUpgrad
     /// @dev Returns to normal state. Contract must be paused
     function unpause() external onlyLRTAdmin {
         _unpause();
-    }
-
-    /// @dev Returns the total amount of an asset deposited into eigen layer
-    /// @param _asset the asset to get the total amount of
-    /// @return totalAssetWithEigenLayer the total amount of the asset
-    function getAssetAmountWithEigenLayer(address _asset)
-        external
-        view
-        override
-        onlySupportedAsset(_asset)
-        returns (uint256 totalAssetWithEigenLayer)
-    {
-        uint256 length = nodeDelegatorQueue.length;
-        for (uint256 i; i < length;) {
-            totalAssetWithEigenLayer += INodeDelegator(nodeDelegatorQueue[i]).getAssetBalance(_asset);
-            unchecked {
-                ++i;
-            }
-        }
     }
 }

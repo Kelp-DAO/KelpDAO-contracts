@@ -18,8 +18,6 @@ contract RSETH is
     PausableUpgradeable,
     AccessControlUpgradeable
 {
-    event UpdatedLRTConfig(address indexed _lrtConfig);
-
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
     bytes32 public constant BURNER_ROLE = keccak256("BURNER_ROLE");
 
@@ -29,17 +27,17 @@ contract RSETH is
     }
 
     /// @dev Initializes the contract
-    /// @param _admin Admin address
-    /// @param _lrtConfig LRT config address
-    function initialize(address _admin, address _lrtConfig) external initializer {
-        UtilLib.checkNonZeroAddress(_admin);
-        UtilLib.checkNonZeroAddress(_lrtConfig);
+    /// @param admin Admin address
+    /// @param lrtConfigAddr LRT config address
+    function initialize(address admin, address lrtConfigAddr) external initializer {
+        UtilLib.checkNonZeroAddress(admin);
+        UtilLib.checkNonZeroAddress(lrtConfigAddr);
 
         __ERC20_init("rsETH", "rsETH");
         __Pausable_init();
         __AccessControl_init();
-        lrtConfig = ILRTConfig(_lrtConfig);
-        _grantRole(DEFAULT_ADMIN_ROLE, _admin);
+        lrtConfig = ILRTConfig(lrtConfigAddr);
+        _grantRole(DEFAULT_ADMIN_ROLE, admin);
     }
 
     /// @notice Mints rsETH when called by an authorized caller
@@ -71,7 +69,7 @@ contract RSETH is
     /// @notice Updates the LRT config contract
     /// @dev only callable by the rsETH admin
     /// @param _lrtConfig the new LRT config contract
-    function updateLRTConfig(address _lrtConfig) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function updateLRTConfig(address _lrtConfig) external override onlyRole(DEFAULT_ADMIN_ROLE) {
         UtilLib.checkNonZeroAddress(_lrtConfig);
         lrtConfig = ILRTConfig(_lrtConfig);
         emit UpdatedLRTConfig(_lrtConfig);

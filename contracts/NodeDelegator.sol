@@ -22,14 +22,14 @@ contract NodeDelegator is INodeDelegator, LRTConfigRoleChecker, PausableUpgradea
     }
 
     /// @dev Initializes the contract
-    /// @param _lrtConfig LRT config address
-    function initialize(address _lrtConfig) external initializer {
-        UtilLib.checkNonZeroAddress(_lrtConfig);
+    /// @param lrtConfigAddr LRT config address
+    function initialize(address lrtConfigAddr) external initializer {
+        UtilLib.checkNonZeroAddress(lrtConfigAddr);
         __Pausable_init();
         __ReentrancyGuard_init();
 
-        lrtConfig = ILRTConfig(_lrtConfig);
-        emit UpdatedLRTConfig(_lrtConfig);
+        lrtConfig = ILRTConfig(lrtConfigAddr);
+        emit UpdatedLRTConfig(lrtConfigAddr);
     }
 
     /// @notice Deposits an asset into its strategy

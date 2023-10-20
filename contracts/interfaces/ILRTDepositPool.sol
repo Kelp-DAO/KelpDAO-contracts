@@ -10,24 +10,24 @@ interface ILRTDepositPool {
     error MaximumNodeDelegatorCountReached();
 
     //events
-    event UpdatedLRTConfig(address lrtConfig);
     event MaxNodeDelegatorCountUpdated(uint256 maxNodeDelegatorCount);
     event AddedProspectiveNodeDelegatorInQueue(address prospectiveNodeDelegatorContract);
     event AssetDeposit(address asset, uint256 depositAmount, uint256 rsethMintAmount);
 
     function depositAsset(address asset, uint256 depositAmount) external;
 
-    function getAssetCurrentLimit(address _asset) external view returns (uint256);
+    function getAssetCurrentLimit(address asset) external view returns (uint256);
 
-    function addNodeDelegatorContractToQueue(address[] calldata _nodeDelegatorContract) external;
+    function addNodeDelegatorContractToQueue(address[] calldata nodeDelegatorContract) external;
 
-    function transferAssetToNodeDelegator(uint256 _ndcIndex, address _asset, uint256 _amount) external;
+    function transferAssetToNodeDelegator(uint256 ndcIndex, address asset, uint256 amount) external;
 
-    function updateMaxNodeDelegatorCount(uint256 _maxNodeDelegatorCount) external;
-
-    function updateLRTConfig(address _lrtConfig) external;
+    function updateMaxNodeDelegatorCount(uint256 maxNodeDelegatorCount) external;
 
     function getNodeDelegatorQueue() external view returns (address[] memory);
 
-    function getAssetAmountWithEigenLayer(address _asset) external view returns (uint256);
+    function getAssetDistributionData(address asset)
+        external
+        view
+        returns (uint256 assetLyingInDepositPool, uint256 assetLyingInNDCs, uint256 assetStakedInEigenLayer);
 }

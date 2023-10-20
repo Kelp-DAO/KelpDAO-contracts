@@ -11,7 +11,7 @@ import { TransparentUpgradeableProxy } from "@openzeppelin/contracts/proxy/trans
 import { ProxyAdmin } from "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
 
 contract LRTOracleMock {
-    function assetER(address) external pure returns (uint256) {
+    function getAssetPrice(address) external pure returns (uint256) {
         return 1e18;
     }
 }

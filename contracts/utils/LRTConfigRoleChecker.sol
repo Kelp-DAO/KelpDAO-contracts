@@ -1,14 +1,20 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.21;
 
-import { IAccessControl } from "@openzeppelin/contracts/access/IAccessControl.sol";
-import { ILRTConfig } from "../interfaces/ILRTConfig.sol";
+import { UtilLib } from "./UtilLib.sol";
 import { LRTConstants } from "./LRTConstants.sol";
+
+import { ILRTConfig } from "../interfaces/ILRTConfig.sol";
+
+import { IAccessControl } from "@openzeppelin/contracts/access/IAccessControl.sol";
 
 /// @title LRTConfigRoleChecker - LRT Config Role Checker Contract
 /// @notice Handles LRT config role checks
 abstract contract LRTConfigRoleChecker {
     ILRTConfig public lrtConfig;
+
+    // events
+    event UpdatedLRTConfig(address indexed lrtConfig);
 
     // modifiers
     modifier onlyLRTManager() {
@@ -26,10 +32,21 @@ abstract contract LRTConfigRoleChecker {
         _;
     }
 
-    modifier onlySupportedAsset(address _asset) {
-        if (!lrtConfig.isSupportedAsset(_asset)) {
+    modifier onlySupportedAsset(address asset) {
+        if (!lrtConfig.isSupportedAsset(asset)) {
             revert ILRTConfig.AssetNotSupported();
         }
         _;
+    }
+
+    // setters
+
+    /// @notice Updates the LRT config contract
+    /// @dev only callable by LRT admin
+    /// @param lrtConfigAddr the new LRT config contract Address
+    function updateLRTConfig(address lrtConfigAddr) external virtual onlyLRTAdmin {
+        UtilLib.checkNonZeroAddress(lrtConfigAddr);
+        lrtConfig = ILRTConfig(lrtConfigAddr);
+        emit UpdatedLRTConfig(lrtConfigAddr);
     }
 }

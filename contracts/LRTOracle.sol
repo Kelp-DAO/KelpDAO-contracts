@@ -6,6 +6,7 @@ import { LRTConstants } from "./utils/LRTConstants.sol";
 import { LRTConfigRoleChecker, ILRTConfig } from "./utils/LRTConfigRoleChecker.sol";
 
 import { IRSETH } from "./interfaces/IRSETH.sol";
+import { IPriceFetcher } from "./interfaces/IPriceFetcher.sol";
 import { ILRTOracle } from "./interfaces/ILRTOracle.sol";
 import { ILRTDepositPool } from "./interfaces/ILRTDepositPool.sol";
 import { INodeDelegator } from "./interfaces/INodeDelegator.sol";
@@ -16,7 +17,7 @@ import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/P
 /// @title LRTOracle Contract
 /// @notice oracle contract that calculates the exchange rate of assets
 contract LRTOracle is ILRTOracle, LRTConfigRoleChecker, PausableUpgradeable {
-    mapping(address asset => uint256 er) public override assetER;
+    mapping(address asset => address priceOracle) public override assetPriceOracle;
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
@@ -24,82 +25,79 @@ contract LRTOracle is ILRTOracle, LRTConfigRoleChecker, PausableUpgradeable {
     }
 
     /// @dev Initializes the contract
-    /// @param _lrtConfig LRT config address
-    function initialize(address _lrtConfig) external initializer {
-        UtilLib.checkNonZeroAddress(_lrtConfig);
+    /// @param lrtConfigAddr LRT config address
+    function initialize(address lrtConfigAddr) external initializer {
+        UtilLib.checkNonZeroAddress(lrtConfigAddr);
         __Pausable_init();
 
-        lrtConfig = ILRTConfig(_lrtConfig);
-        emit UpdatedLRTConfig(_lrtConfig);
+        lrtConfig = ILRTConfig(lrtConfigAddr);
+        emit UpdatedLRTConfig(lrtConfigAddr);
     }
 
-    /// @notice Updates the exchange rate of an asset
-    /// @dev only callable by LRT manager
-    /// @param asset the asset to update
-    function updateAssetER(address asset, uint256 er) public onlyLRTManager {
-        assetER[asset] = er;
+    /*//////////////////////////////////////////////////////////////
+                            view functions
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Provides Asset/ETH exchange rate
+    /// @dev reads from priceFetcher interface which may fetch price from any supported oracle
+    /// @param asset the asset for which exchange rate is required
+    /// @return assetPrice exchange rate of asset
+    function getAssetPrice(address asset) public view onlySupportedAsset(asset) returns (uint256) {
+        return IPriceFetcher(assetPriceOracle[asset]).getAssetPrice(asset);
     }
 
-    /// @dev Uses the most recently updated asset exchange rates to compute the total ETH in reserve.
-    function updateRSETHRate() external {
+    /// @notice Provides RSETH/ETH exchange rate
+    /// @dev calculates based on stakedAsset value received from eigen layer
+    /// @return rsETHPrice exchange rate of RSETH
+    function getRSETHPrice() external view returns (uint256 rsETHPrice) {
         address rsETHTokenAddress = lrtConfig.rsETH();
         uint256 rsEthSupply = IRSETH(rsETHTokenAddress).totalSupply();
 
         if (rsEthSupply == 0) {
-            assetER[rsETHTokenAddress] = 1e18;
-            return;
+            return 1 ether;
         }
 
-        uint256 totalETHInPool; // totalETHInPool = eth in lrtDepositPool + eth in ndcs + eth already staked in eigen
-            // layer
-        address lrtDepositPool = lrtConfig.getContract(LRTConstants.LRT_DEPOSIT_POOL);
+        uint256 totalETHInPool;
+        address lrtDepositPoolAddr = lrtConfig.getContract(LRTConstants.LRT_DEPOSIT_POOL);
 
         address[] memory supportedAssets = lrtConfig.getSupportedAssetList();
         uint256 supportedAssetCount = supportedAssets.length;
 
-        // calculate lrtDepositPool eth eqivalent balance
         for (uint16 asset_idx; asset_idx < supportedAssetCount;) {
             address asset = supportedAssets[asset_idx];
-            totalETHInPool += IERC20(asset).balanceOf(lrtDepositPool) * assetER[asset];
+            uint256 assetER = getAssetPrice(asset);
 
+            (uint256 assetLyingInDepositPool, uint256 assetLyingInNDCs, uint256 assetStakedInEigenLayer) =
+                ILRTDepositPool(lrtDepositPoolAddr).getAssetDistributionData(asset);
+
+            uint256 totalAssetAmt = assetLyingInDepositPool + assetLyingInNDCs + assetStakedInEigenLayer;
+            totalETHInPool += totalAssetAmt * assetER;
             unchecked {
                 ++asset_idx;
             }
         }
-        // calculate ndcs eth eqivalent balance
-        address[] memory ndcs = ILRTDepositPool(lrtDepositPool).getNodeDelegatorQueue();
-        uint256 ndcCount = ndcs.length;
-        for (uint16 ndc_idx; ndc_idx < ndcCount;) {
-            address ndc = ndcs[ndc_idx];
 
-            // calculate ndc eth amount
-            for (uint16 asset_idx; asset_idx < supportedAssetCount;) {
-                address asset = supportedAssets[asset_idx];
-                totalETHInPool += IERC20(asset).balanceOf(ndc) * assetER[asset];
-                unchecked {
-                    ++asset_idx;
-                }
-            }
+        return totalETHInPool / rsEthSupply;
+    }
 
-            // calculate eth amount in eigen layer through this ndc
-            (
-                address[] memory assets,
-                uint256[] memory balances // wei
-            ) = INodeDelegator(ndc).getAssetBalances();
-            uint256 ndcAssetCount = assets.length;
-            for (uint16 asset_idx = 0; asset_idx < ndcAssetCount;) {
-                totalETHInPool += balances[asset_idx] * assetER[assets[asset_idx]];
-                unchecked {
-                    ++asset_idx;
-                }
-            }
+    /*//////////////////////////////////////////////////////////////
+                            write functions
+    //////////////////////////////////////////////////////////////*/
 
-            unchecked {
-                ++ndc_idx;
-            }
-        }
-
-        assetER[rsETHTokenAddress] = totalETHInPool / rsEthSupply;
+    /// @dev add/update the price oracle of any supported asset
+    /// @dev only LRTManager is allowed
+    /// @param asset asset address for which oracle price needs to be added/updated
+    function updatePriceOracleFor(
+        address asset,
+        address priceOracle
+    )
+        external
+        onlyLRTManager
+        onlySupportedAsset(asset)
+    {
+        UtilLib.checkNonZeroAddress(priceOracle);
+        assetPriceOracle[asset] = priceOracle;
+        emit AssetPriceOracleUpdate(asset, priceOracle);
     }
 
     /// @dev Triggers stopped state. Contract must not be paused.

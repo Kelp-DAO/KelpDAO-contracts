@@ -25,8 +25,8 @@ contract LRTConfig is ILRTConfig, AccessControlUpgradeable {
         _disableInitializers();
     }
 
-    modifier onlySupportedAsset(address _asset) {
-        if (!isSupportedAsset[_asset]) {
+    modifier onlySupportedAsset(address asset) {
+        if (!isSupportedAsset[asset]) {
             revert AssetNotSupported();
         }
         _;
@@ -37,12 +37,13 @@ contract LRTConfig is ILRTConfig, AccessControlUpgradeable {
     /// @param stETH stETH address
     /// @param rETH rETH address
     /// @param cbETH cbETH address
+    /// @param rsETH_ cbETH address
     function initialize(
         address admin,
         address stETH,
         address rETH,
         address cbETH,
-        address _rsETH
+        address rsETH_
     )
         external
         initializer
@@ -51,7 +52,7 @@ contract LRTConfig is ILRTConfig, AccessControlUpgradeable {
         UtilLib.checkNonZeroAddress(stETH);
         UtilLib.checkNonZeroAddress(rETH);
         UtilLib.checkNonZeroAddress(cbETH);
-        UtilLib.checkNonZeroAddress(_rsETH);
+        UtilLib.checkNonZeroAddress(rsETH_);
 
         __AccessControl_init();
         _setToken(LRTConstants.R_ETH_TOKEN, rETH);
@@ -63,7 +64,7 @@ contract LRTConfig is ILRTConfig, AccessControlUpgradeable {
 
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
 
-        rsETH = _rsETH;
+        rsETH = rsETH_;
     }
 
     /// @dev Adds a new supported asset
@@ -167,10 +168,10 @@ contract LRTConfig is ILRTConfig, AccessControlUpgradeable {
                             SETTERS
     //////////////////////////////////////////////////////////////*/
     /// @dev Sets the rsETH contract address. Only callable by the admin
-    /// @param _rsETH rsETH contract address
-    function setRSETH(address _rsETH) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        UtilLib.checkNonZeroAddress(_rsETH);
-        rsETH = _rsETH;
+    /// @param rsETH_ rsETH contract address
+    function setRSETH(address rsETH_) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        UtilLib.checkNonZeroAddress(rsETH_);
+        rsETH = rsETH_;
     }
 
     function setToken(bytes32 tokenKey, address assetAddress) external onlyRole(DEFAULT_ADMIN_ROLE) {

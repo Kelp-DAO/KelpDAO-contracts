@@ -8,9 +8,6 @@ interface INodeDelegator {
     error TokenTransferFailed();
     error AssetNotSupported();
 
-    // events
-    event UpdatedLRTConfig(address indexed _lrtConfig);
-
     // methods
     function depositAssetIntoStrategy(address asset) external;
 
