@@ -2,7 +2,7 @@
 
 pragma solidity 0.8.21;
 
-import { LRTConfigTest, ILRTConfig, LRTConstants, UtilLib, IAccessControl } from "./LRTConfigTest.t.sol";
+import { LRTConfigTest, ILRTConfig, LRTConstants, UtilLib } from "./LRTConfigTest.t.sol";
 import { IStrategy } from "contracts/interfaces/IStrategy.sol";
 import { NodeDelegator } from "contracts/NodeDelegator.sol";
 import { TransparentUpgradeableProxy } from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
