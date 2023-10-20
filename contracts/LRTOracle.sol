@@ -72,6 +72,7 @@ contract LRTOracle is ILRTOracle, LRTConfigRoleChecker, PausableUpgradeable {
 
             uint256 totalAssetAmt = assetLyingInDepositPool + assetLyingInNDCs + assetStakedInEigenLayer;
             totalETHInPool += totalAssetAmt * assetER;
+
             unchecked {
                 ++asset_idx;
             }

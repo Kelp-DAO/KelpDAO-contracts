@@ -66,6 +66,7 @@ contract LRTDepositPool is ILRTDepositPool, LRTConfigRoleChecker, PausableUpgrad
         onlySupportedAsset(asset)
         returns (uint256 assetLyingInDepositPool, uint256 assetLyingInNDCs, uint256 assetStakedInEigenLayer)
     {
+        // Question: is here the right place to have this? Could it be in LRTConfig?
         assetLyingInDepositPool = IERC20(asset).balanceOf(address(this));
 
         uint256 ndcsCount = nodeDelegatorQueue.length;
@@ -76,6 +77,27 @@ contract LRTDepositPool is ILRTDepositPool, LRTConfigRoleChecker, PausableUpgrad
                 ++i;
             }
         }
+    }
+
+    /// @notice View amount of rsETH to mint for given asset amount
+    /// @param asset Asset address
+    /// @param amount Asset amount
+    /// @return rsethAmountToMint Amount of rseth to mint
+    function getRsETHAmountToMint(
+        address asset,
+        uint256 amount
+    )
+        public
+        view
+        override
+        returns (uint256 rsethAmountToMint)
+    {
+        // setup oracle contract
+        address lrtOracleAddress = lrtConfig.getContract(LRTConstants.LRT_ORACLE);
+        ILRTOracle lrtOracle = ILRTOracle(lrtOracleAddress);
+
+        // calculate rseth amount to mint based on asset amount and asset exchange rate
+        rsethAmountToMint = (amount * lrtOracle.getAssetPrice(asset)) / lrtOracle.getRSETHPrice();
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -121,14 +143,9 @@ contract LRTDepositPool is ILRTDepositPool, LRTConfigRoleChecker, PausableUpgrad
     /// @param _amount Asset amount to mint rseth
     /// @return rsethAmountToMint Amount of rseth minted
     function _mintRsETH(address _asset, uint256 _amount) private returns (uint256 rsethAmountToMint) {
-        // setup oracle contract
-        address lrtOracleAddress = lrtConfig.getContract(LRTConstants.LRT_ORACLE);
-        ILRTOracle lrtOracle = ILRTOracle(lrtOracleAddress);
+        (rsethAmountToMint) = getRsETHAmountToMint(_asset, _amount);
 
-        // calculate rseth amount to mint based on asset amount and asset exchange rate
         address rsethToken = lrtConfig.rsETH();
-        rsethAmountToMint = (_amount * lrtOracle.getAssetPrice(_asset)) / lrtOracle.getAssetPrice(address(rsethToken));
-
         // mint rseth for user
         IRSETH(rsethToken).mint(msg.sender, rsethAmountToMint);
     }

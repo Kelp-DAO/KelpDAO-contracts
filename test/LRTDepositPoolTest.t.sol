@@ -14,6 +14,10 @@ contract LRTOracleMock {
     function getAssetPrice(address) external pure returns (uint256) {
         return 1e18;
     }
+
+    function getRSETHPrice() external pure returns (uint256) {
+        return 1e18;
+    }
 }
 
 contract LRTDepositPoolTest is BaseTest, RSETHTest {
@@ -114,6 +118,37 @@ contract LRTDepositPoolDepositAsset is LRTDepositPoolTest {
 
         assertEq(lrtDepositPool.totalAssetDeposits(rETHAddress), 2 ether, "Total asset deposits is not set");
         assertGt(aliceBalanceAfter, aliceBalanceBefore, "Alice balance is not set");
+    }
+}
+
+contract LRTDepositPoolGetRsETHAmountToMint is LRTDepositPoolTest {
+    address public rETHAddress;
+
+    function setUp() public override {
+        super.setUp();
+
+        // initialize LRTDepositPool
+        lrtDepositPool.initialize(address(lrtConfig));
+
+        rETHAddress = address(rETH);
+
+        // add manager role within LRTConfig
+        vm.startPrank(admin);
+        lrtConfig.grantRole(LRTConstants.MANAGER, manager);
+        vm.stopPrank();
+    }
+
+    function test_GetRsETHAmountToMint() external {
+        uint256 amountToDeposit = 1 ether;
+        vm.startPrank(manager);
+        lrtConfig.updateAssetCapacity(rETHAddress, amountToDeposit);
+        vm.stopPrank();
+
+        assertEq(
+            lrtDepositPool.getRsETHAmountToMint(rETHAddress, amountToDeposit),
+            1 ether,
+            "RsETH amount to mint is incorrect"
+        );
     }
 }
 
