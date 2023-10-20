@@ -4,6 +4,9 @@ pragma solidity 0.8.21;
 import "./IStrategy.sol";
 
 interface INodeDelegator {
+    // event
+    event AssetDepositIntoStrategy(address indexed asset, address indexed strategy, uint256 depositAmount);
+
     // errors
     error TokenTransferFailed();
     error AssetNotSupported();

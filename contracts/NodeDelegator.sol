@@ -32,6 +32,19 @@ contract NodeDelegator is INodeDelegator, LRTConfigRoleChecker, PausableUpgradea
         emit UpdatedLRTConfig(lrtConfigAddr);
     }
 
+    /// @notice Approves the maximum amount of an asset to the eigen strategy manager
+    /// @dev only supported assets can be deposited and only called by the LRT manager
+    /// @param asset the asset to deposit
+    function maxApproveToEigenStrategyManager(address asset)
+        external
+        override
+        onlySupportedAsset(asset)
+        onlyLRTManager
+    {
+        address eigenlayerStrategyManagerAddress = lrtConfig.getContract(LRTConstants.EIGEN_STRATEGY_MANAGER);
+        IERC20(asset).approve(eigenlayerStrategyManagerAddress, type(uint256).max);
+    }
+
     /// @notice Deposits an asset into its strategy
     /// @dev only supported assets can be deposited and only called by the LRT manager
     /// @param asset the asset to deposit
@@ -46,27 +59,18 @@ contract NodeDelegator is INodeDelegator, LRTConfigRoleChecker, PausableUpgradea
         address strategy = lrtConfig.assetStrategy(asset);
         IERC20 token = IERC20(asset);
         address eigenlayerStrategyManagerAddress = lrtConfig.getContract(LRTConstants.EIGEN_STRATEGY_MANAGER);
-        IEigenStrategyManager(eigenlayerStrategyManagerAddress).depositIntoStrategy(
-            IStrategy(strategy), token, token.balanceOf(address(this))
-        );
-    }
 
-    /// @notice Deposits an asset into its strategy
-    /// @dev only supported assets can be deposited and only called by the LRT manager
-    /// @param asset the asset to deposit
-    function maxApproveToEigenStrategyManager(address asset)
-        external
-        override
-        onlySupportedAsset(asset)
-        onlyLRTManager
-    {
-        address eigenlayerStrategyManagerAddress = lrtConfig.getContract(LRTConstants.EIGEN_STRATEGY_MANAGER);
-        IERC20(asset).approve(eigenlayerStrategyManagerAddress, type(uint256).max);
+        uint256 balance = token.balanceOf(address(this));
+
+        emit AssetDepositIntoStrategy(asset, strategy, balance);
+
+        IEigenStrategyManager(eigenlayerStrategyManagerAddress).depositIntoStrategy(IStrategy(strategy), token, balance);
     }
 
     /// @notice Transfers an asset back to the LRT deposit pool
     /// @dev only supported assets can be transferred and only called by the LRT manager
     /// @param asset the asset to transfer
+    /// @param amount the amount to transfer
     function transferBackToLRTDepositPool(
         address asset,
         uint256 amount
@@ -111,7 +115,7 @@ contract NodeDelegator is INodeDelegator, LRTConfigRoleChecker, PausableUpgradea
         }
     }
 
-    /// @dev Returns the balance of an asset that the node delegator has deposited into the el strategy
+    /// @dev Returns the balance of an asset that the node delegator has deposited into the strategy
     /// @param asset the asset to get the balance of
     /// @return stakedBalance the balance of the asset
     function getAssetBalance(address asset) external view override returns (uint256) {
