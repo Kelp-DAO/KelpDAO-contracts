@@ -10,7 +10,7 @@
     "test": "forge test",
     "test:coverage": "forge coverage",
     "test:coverage:report": "forge coverage --report lcov && genhtml lcov.info --branch-coverage --output-dir coverage",
-    "metrics": "solidity-code-metrics ./contracts/**/*.sol > metrics.md"
+    "metrics": "npx solidity-code-metrics contracts/*.sol contracts/**/*.sol > metrics.md"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-foundry": "^1.1.1",
