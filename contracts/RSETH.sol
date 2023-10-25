@@ -36,8 +36,9 @@ contract RSETH is
         __ERC20_init("rsETH", "rsETH");
         __Pausable_init();
         __AccessControl_init();
-        lrtConfig = ILRTConfig(lrtConfigAddr);
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
+        lrtConfig = ILRTConfig(lrtConfigAddr);
+        emit UpdatedLRTConfig(lrtConfigAddr);
     }
 
     /// @notice Mints rsETH when called by an authorized caller

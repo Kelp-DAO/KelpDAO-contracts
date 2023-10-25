@@ -20,6 +20,12 @@ contract LRTOracleMock {
     }
 }
 
+contract MockNodeDelegator {
+    function getAssetBalance(address) external pure returns (uint256) {
+        return 1e18;
+    }
+}
+
 contract LRTDepositPoolTest is BaseTest, RSETHTest {
     LRTDepositPool public lrtDepositPool;
 
@@ -218,6 +224,52 @@ contract LRTDepositPoolGetNodeDelegatorQueue is LRTDepositPoolTest {
     }
 }
 
+contract LRTDepositPoolGetAssetDistributionData is LRTDepositPoolTest {
+    address public rETHAddress;
+
+    function setUp() public override {
+        super.setUp();
+
+        // initialize LRTDepositPool
+        lrtDepositPool.initialize(address(lrtConfig));
+
+        rETHAddress = address(rETH);
+
+        // add manager role within LRTConfig
+        vm.startPrank(admin);
+        lrtConfig.grantRole(LRTConstants.MANAGER, manager);
+        vm.stopPrank();
+    }
+
+    function test_GetAssetDistributionData() external {
+        address nodeDelegatorContractOne = address(new MockNodeDelegator());
+        address nodeDelegatorContractTwo = address(new MockNodeDelegator());
+        address nodeDelegatorContractThree = address(new MockNodeDelegator());
+
+        address[] memory nodeDelegatorQueue = new address[](3);
+        nodeDelegatorQueue[0] = nodeDelegatorContractOne;
+        nodeDelegatorQueue[1] = nodeDelegatorContractTwo;
+        nodeDelegatorQueue[2] = nodeDelegatorContractThree;
+
+        vm.startPrank(admin);
+        lrtDepositPool.addNodeDelegatorContractToQueue(nodeDelegatorQueue);
+        vm.stopPrank();
+
+        // deposit 3 ether rETH
+        vm.startPrank(alice);
+        rETH.approve(address(lrtDepositPool), 3 ether);
+        lrtDepositPool.depositAsset(rETHAddress, 3 ether);
+        vm.stopPrank();
+
+        (uint256 assetLyingInDepositPool, uint256 assetLyingInNDCs, uint256 assetStakedInEigenLayer) =
+            lrtDepositPool.getAssetDistributionData(rETHAddress);
+
+        assertEq(assetLyingInDepositPool, 3 ether, "Asset lying in deposit pool is not set");
+        assertEq(assetLyingInNDCs, 0, "Asset lying in NDCs is not set");
+        assertEq(assetStakedInEigenLayer, 3 ether, "Asset staked in eigen layer is not set");
+    }
+}
+
 contract LRTDepositPoolAddNodeDelegatorContractToQueue is LRTDepositPoolTest {
     address public nodeDelegatorContractOne;
     address public nodeDelegatorContractTwo;
@@ -290,5 +342,151 @@ contract LRTDepositPoolAddNodeDelegatorContractToQueue is LRTDepositPoolTest {
             "Node delegator index 2 contract is not added"
         );
         vm.stopPrank();
+    }
+}
+
+contract LRTDepositPoolTransferAssetToNodeDelegator is LRTDepositPoolTest {
+    address public nodeDelegatorContractOne;
+    address public nodeDelegatorContractTwo;
+    address public nodeDelegatorContractThree;
+
+    address[] public nodeDelegatorQueueProspectives;
+
+    function setUp() public override {
+        super.setUp();
+
+        // initialize LRTDepositPool
+        lrtDepositPool.initialize(address(lrtConfig));
+
+        nodeDelegatorContractOne = makeAddr("nodeDelegatorContractOne");
+        nodeDelegatorContractTwo = makeAddr("nodeDelegatorContractTwo");
+        nodeDelegatorContractThree = makeAddr("nodeDelegatorContractThree");
+
+        nodeDelegatorQueueProspectives.push(nodeDelegatorContractOne);
+        nodeDelegatorQueueProspectives.push(nodeDelegatorContractTwo);
+        nodeDelegatorQueueProspectives.push(nodeDelegatorContractThree);
+
+        // add manager role within LRTConfig
+        vm.startPrank(admin);
+        lrtConfig.grantRole(LRTConstants.MANAGER, manager);
+        vm.stopPrank();
+
+        // add node delegator contracts to queue
+        vm.startPrank(admin);
+        lrtDepositPool.addNodeDelegatorContractToQueue(nodeDelegatorQueueProspectives);
+        vm.stopPrank();
+    }
+
+    function test_RevertWhenNotCalledByLRTConfigManager() external {
+        vm.startPrank(alice);
+
+        vm.expectRevert(ILRTConfig.CallerNotLRTConfigManager.selector);
+        lrtDepositPool.transferAssetToNodeDelegator(0, address(rETH), 1 ether);
+
+        vm.stopPrank();
+    }
+
+    function test_TransferAssetToNodeDelegator() external {
+        // deposit 3 ether rETH
+        vm.startPrank(alice);
+        rETH.approve(address(lrtDepositPool), 3 ether);
+        lrtDepositPool.depositAsset(address(rETH), 3 ether);
+        vm.stopPrank();
+
+        // transfer 1 ether rETH to node delegator contract one
+        vm.startPrank(manager);
+        lrtDepositPool.transferAssetToNodeDelegator(0, address(rETH), 1 ether);
+        vm.stopPrank();
+
+        assertEq(rETH.balanceOf(nodeDelegatorContractOne), 1 ether, "Asset is not transferred to node delegator");
+    }
+}
+
+contract LRTDepositPoolUpdateMaxNodeDelegatorCount is LRTDepositPoolTest {
+    function setUp() public override {
+        super.setUp();
+
+        // initialize LRTDepositPool
+        lrtDepositPool.initialize(address(lrtConfig));
+    }
+
+    function test_RevertWhenNotCalledByLRTConfigAdmin() external {
+        vm.startPrank(alice);
+
+        vm.expectRevert(ILRTConfig.CallerNotLRTConfigAdmin.selector);
+        lrtDepositPool.updateMaxNodeDelegatorCount(10);
+
+        vm.stopPrank();
+    }
+
+    function test_UpdateMaxNodeDelegatorCount() external {
+        vm.startPrank(admin);
+        lrtDepositPool.updateMaxNodeDelegatorCount(10);
+        vm.stopPrank();
+
+        assertEq(lrtDepositPool.maxNodeDelegatorCount(), 10, "Max node delegator count is not set");
+    }
+}
+
+contract LRTDepositPoolPause is LRTDepositPoolTest {
+    function setUp() public override {
+        super.setUp();
+
+        // initialize LRTDepositPool
+        lrtDepositPool.initialize(address(lrtConfig));
+
+        // add manager role within LRTConfig
+        vm.startPrank(admin);
+        lrtConfig.grantRole(LRTConstants.MANAGER, manager);
+        vm.stopPrank();
+    }
+
+    function test_RevertWhenNotCalledByLRTConfigManager() external {
+        vm.startPrank(alice);
+
+        vm.expectRevert(ILRTConfig.CallerNotLRTConfigManager.selector);
+        lrtDepositPool.pause();
+
+        vm.stopPrank();
+    }
+
+    function test_Pause() external {
+        vm.startPrank(manager);
+        lrtDepositPool.pause();
+        vm.stopPrank();
+
+        assertTrue(lrtDepositPool.paused(), "LRTDepositPool is not paused");
+    }
+}
+
+contract LRTDepositPoolUnpause is LRTDepositPoolTest {
+    function setUp() public override {
+        super.setUp();
+
+        // initialize LRTDepositPool
+        lrtDepositPool.initialize(address(lrtConfig));
+
+        // add manager role within LRTConfig
+        vm.startPrank(admin);
+        lrtConfig.grantRole(LRTConstants.MANAGER, manager);
+        vm.stopPrank();
+    }
+
+    function test_RevertWhenNotCalledByLRTConfigAdmin() external {
+        vm.startPrank(alice);
+
+        vm.expectRevert(ILRTConfig.CallerNotLRTConfigAdmin.selector);
+        lrtDepositPool.unpause();
+
+        vm.stopPrank();
+    }
+
+    function test_Unpause() external {
+        vm.prank(manager);
+        lrtDepositPool.pause();
+        vm.prank(admin);
+        lrtDepositPool.unpause();
+
+        assertFalse(lrtDepositPool.paused(), "LRTDepositPool is not unpaused");
     }
 }

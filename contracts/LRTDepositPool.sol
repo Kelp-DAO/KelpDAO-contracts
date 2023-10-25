@@ -35,6 +35,7 @@ contract LRTDepositPool is ILRTDepositPool, LRTConfigRoleChecker, PausableUpgrad
         __ReentrancyGuard_init();
         maxNodeDelegatorCount = 10;
         lrtConfig = ILRTConfig(lrtConfigAddr);
+        emit UpdatedLRTConfig(lrtConfigAddr);
     }
 
     /*//////////////////////////////////////////////////////////////
