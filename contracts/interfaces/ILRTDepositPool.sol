@@ -11,7 +11,7 @@ interface ILRTDepositPool {
 
     //events
     event MaxNodeDelegatorCountUpdated(uint256 maxNodeDelegatorCount);
-    event AddedProspectiveNodeDelegatorInQueue(address prospectiveNodeDelegatorContract);
+    event NodeDelegatorAddedinQueue(address prospectiveNodeDelegatorContract);
     event AssetDeposit(address asset, uint256 depositAmount, uint256 rsethMintAmount);
 
     function depositAsset(address asset, uint256 depositAmount) external;

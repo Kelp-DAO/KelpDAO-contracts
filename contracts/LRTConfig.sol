@@ -88,38 +88,10 @@ contract LRTConfig is ILRTConfig, AccessControlUpgradeable {
         emit AddedNewSupportedAsset(asset, depositLimit);
     }
 
-    /// @dev Removes a supported asset
-    /// @param asset Asset address
-    function removeSupportedAsset(address asset) external onlyRole(LRTConstants.MANAGER) onlySupportedAsset(asset) {
-        isSupportedAsset[asset] = false;
-        depositLimitByAsset[asset] = 0;
-
-        _removeFromSupportedAssetList(asset);
-
-        emit RemovedSupportedAsset(asset);
-    }
-
-    /// @dev private function to remove an asset from the supported asset list
-    /// @param asset Asset address
-    function _removeFromSupportedAssetList(address asset) private {
-        uint256 length = supportedAssetList.length;
-        for (uint256 i; i < length;) {
-            if (supportedAssetList[i] == asset) {
-                supportedAssetList[i] = supportedAssetList[length - 1];
-                supportedAssetList.pop();
-                break;
-            }
-
-            unchecked {
-                ++i;
-            }
-        }
-    }
-
     /// @dev Updates the deposit limit for an asset
     /// @param asset Asset address
     /// @param depositLimit New deposit limit
-    function updateAssetCapacity(
+    function updateAssetDepositLimit(
         address asset,
         uint256 depositLimit
     )

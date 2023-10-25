@@ -48,7 +48,7 @@ Source Units in Scope: **`17`** (**100%**)
 
 | Type | File   | Logic Contracts | Interfaces | Lines | nLines | nSLOC | Comment Lines | Complex. Score | Capabilities |
 | ---- | ------ | --------------- | ---------- | ----- | ------ | ----- | ------------- | -------------- | ------------ |
-| 📝 | contracts/LRTConfig.sol | 1 | **** | 208 | 185 | 117 | 40 | 91 | **<abbr title='Unchecked Blocks'>Σ</abbr>** |
+| 📝 | contracts/LRTConfig.sol | 1 | **** | 197 | 174 | 111 | 38 | 85 | **<abbr title='Unchecked Blocks'>Σ</abbr>** |
 | 📝 | contracts/LRTDepositPool.sol | 1 | **** | 210 | 179 | 97 | 54 | 101 | **<abbr title='Initiates ETH Value Transfer'>📤</abbr><abbr title='Unchecked Blocks'>Σ</abbr>** |
 | 📝 | contracts/LRTOracle.sol | 1 | **** | 113 | 106 | 60 | 24 | 51 | **<abbr title='Unchecked Blocks'>Σ</abbr>** |
 | 📝 | contracts/NodeDelegator.sol | 1 | **** | 135 | 109 | 65 | 24 | 105 | **<abbr title='Initiates ETH Value Transfer'>📤</abbr><abbr title='Unchecked Blocks'>Σ</abbr>** |
@@ -65,7 +65,7 @@ Source Units in Scope: **`17`** (**100%**)
 | 🎨 | contracts/utils/LRTConfigRoleChecker.sol | 1 | **** | 52 | 52 | 33 | 9 | 21 | **** |
 | 📚 | contracts/utils/LRTConstants.sol | 1 | **** | 20 | 20 | 10 | 7 | 22 | **<abbr title='Uses Hash-Functions'>🧮</abbr>** |
 | 📚 | contracts/utils/UtilLib.sol | 1 | **** | 14 | 14 | 7 | 5 | 4 | **** |
-| 📝📚🔍🎨 | **Totals** | **9** | **9** | **1123**  | **908** | **510** | **299** | **564** | **<abbr title='Initiates ETH Value Transfer'>📤</abbr><abbr title='Uses Hash-Functions'>🧮</abbr><abbr title='doppelganger'>🔆</abbr><abbr title='Unchecked Blocks'>Σ</abbr>** |
+| 📝📚🔍🎨 | **Totals** | **9** | **9** | **1112**  | **897** | **504** | **297** | **558** | **<abbr title='Initiates ETH Value Transfer'>📤</abbr><abbr title='Uses Hash-Functions'>🧮</abbr><abbr title='doppelganger'>🔆</abbr><abbr title='Unchecked Blocks'>Σ</abbr>** |
 
 <sub>
 Legend: <a onclick="toggleVisibility('table-legend', this)">[➕]</a>
@@ -162,11 +162,11 @@ This section lists functions that are explicitly declared public or payable. Ple
 
 | 🌐Public   | 💰Payable |
 | ---------- | --------- |
-| 86 | 0  |
+| 85 | 0  |
 
 | External   | Internal | Private | Pure | View |
 | ---------- | -------- | ------- | ---- | ---- |
-| 84 | 60  | 5 | 1 | 38 |
+| 82 | 59  | 5 | 1 | 38 |
 
 #### <span id=t-statevariables>StateVariables</span>
 
@@ -289,9 +289,8 @@ This section lists functions that are explicitly declared public or payable. Ple
 | └ | initialize | External ❗️ | 🛑  | initializer |
 | └ | addNewSupportedAsset | External ❗️ | 🛑  | onlyRole |
 | └ | _addNewSupportedAsset | Private 🔐 | 🛑  | |
-| └ | removeSupportedAsset | External ❗️ | 🛑  | onlyRole onlySupportedAsset |
 | └ | _removeFromSupportedAssetList | Private 🔐 | 🛑  | |
-| └ | updateAssetCapacity | External ❗️ | 🛑  | onlyRole onlySupportedAsset |
+| └ | updateAssetDepositLimit | External ❗️ | 🛑  | onlyRole onlySupportedAsset |
 | └ | updateAssetStrategy | External ❗️ | 🛑  | onlyRole onlySupportedAsset |
 | └ | getLSTToken | External ❗️ |   |NO❗️ |
 | └ | getContract | External ❗️ |   |NO❗️ |
@@ -305,7 +304,7 @@ This section lists functions that are explicitly declared public or payable. Ple
 | **LRTDepositPool** | Implementation | ILRTDepositPool, LRTConfigRoleChecker, PausableUpgradeable, ReentrancyGuardUpgradeable |||
 | └ | <Constructor> | Public ❗️ | 🛑  |NO❗️ |
 | └ | initialize | External ❗️ | 🛑  | initializer |
-| └ | getAssetCurrentLimit | External ❗️ |   |NO❗️ |
+| └ | getAssetCurrentLimit | Public ❗️ |   |NO❗️ |
 | └ | getNodeDelegatorQueue | External ❗️ |   |NO❗️ |
 | └ | getAssetDistributionData | External ❗️ |   | onlySupportedAsset |
 | └ | getRsETHAmountToMint | Public ❗️ |   |NO❗️ |

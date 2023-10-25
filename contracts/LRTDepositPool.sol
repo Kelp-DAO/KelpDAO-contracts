@@ -44,7 +44,7 @@ contract LRTDepositPool is ILRTDepositPool, LRTConfigRoleChecker, PausableUpgrad
     /// @notice gets the current limit of asset deposit
     /// @param asset Asset address
     /// @return currentLimit Current limit of asset deposit
-    function getAssetCurrentLimit(address asset) external view override returns (uint256) {
+    function getAssetCurrentLimit(address asset) public view override returns (uint256) {
         return lrtConfig.depositLimitByAsset(asset) - totalAssetDeposits[asset];
     }
 
@@ -120,7 +120,7 @@ contract LRTDepositPool is ILRTDepositPool, LRTConfigRoleChecker, PausableUpgrad
         if (depositAmount == 0) {
             revert InvalidAmount();
         }
-        if (totalAssetDeposits[asset] + depositAmount > lrtConfig.depositLimitByAsset(asset)) {
+        if (depositAmount > getAssetCurrentLimit(asset)) {
             revert MaximumDepositLimitReached();
         }
 
@@ -162,7 +162,7 @@ contract LRTDepositPool is ILRTDepositPool, LRTConfigRoleChecker, PausableUpgrad
         for (uint256 i; i < length;) {
             UtilLib.checkNonZeroAddress(nodeDelegatorContracts[i]);
             nodeDelegatorQueue.push(nodeDelegatorContracts[i]);
-            emit AddedProspectiveNodeDelegatorInQueue(nodeDelegatorContracts[i]);
+            emit NodeDelegatorAddedinQueue(nodeDelegatorContracts[i]);
             unchecked {
                 ++i;
             }

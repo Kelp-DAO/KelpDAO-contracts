@@ -97,7 +97,7 @@ contract LRTDepositPoolDepositAsset is LRTDepositPoolTest {
 
     function test_RevertWhenDepositAmountExceedsLimit() external {
         vm.prank(manager);
-        lrtConfig.updateAssetCapacity(rETHAddress, 1 ether);
+        lrtConfig.updateAssetDepositLimit(rETHAddress, 1 ether);
 
         vm.expectRevert(ILRTDepositPool.MaximumDepositLimitReached.selector);
         lrtDepositPool.depositAsset(rETHAddress, 2 ether);
@@ -141,7 +141,7 @@ contract LRTDepositPoolGetRsETHAmountToMint is LRTDepositPoolTest {
     function test_GetRsETHAmountToMint() external {
         uint256 amountToDeposit = 1 ether;
         vm.startPrank(manager);
-        lrtConfig.updateAssetCapacity(rETHAddress, amountToDeposit);
+        lrtConfig.updateAssetDepositLimit(rETHAddress, amountToDeposit);
         vm.stopPrank();
 
         assertEq(
@@ -171,7 +171,7 @@ contract LRTDepositPoolGetAssetCurrentLimit is LRTDepositPoolTest {
 
     function test_GetAssetCurrentLimit() external {
         vm.startPrank(manager);
-        lrtConfig.updateAssetCapacity(address(stETH), 1 ether);
+        lrtConfig.updateAssetDepositLimit(address(stETH), 1 ether);
         vm.stopPrank();
 
         assertEq(lrtDepositPool.getAssetCurrentLimit(address(stETH)), 1 ether, "Asset current limit is not set");
@@ -179,7 +179,7 @@ contract LRTDepositPoolGetAssetCurrentLimit is LRTDepositPoolTest {
 
     function test_GetAssetCurrentLimitAfterAssetIsDeposited() external {
         vm.startPrank(manager);
-        lrtConfig.updateAssetCapacity(address(stETH), 10 ether);
+        lrtConfig.updateAssetDepositLimit(address(stETH), 10 ether);
         vm.stopPrank();
 
         // deposit 1 ether stETH
