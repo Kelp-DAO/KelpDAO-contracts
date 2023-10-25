@@ -69,7 +69,7 @@ contract NodeDelegatorTest is LRTConfigTest {
     MockStrategy public cbETHMockStrategy;
     address public mockLRTDepositPool;
 
-    event UpdatedLRTConfig(address indexed _lrtConfig);
+    event UpdatedLRTConfig(address indexed lrtConfig);
     event AssetDepositIntoStrategy(address indexed asset, address indexed strategy, uint256 depositAmount);
 
     uint256 public mockUserUnderlyingViewBalance;
@@ -410,6 +410,6 @@ contract NodeDelegatorUnpause is NodeDelegatorTest {
 
         vm.stopPrank();
 
-        assertFalse(nodeDel.paused(), "Contract is not paused");
+        assertFalse(nodeDel.paused(), "Contract is still paused");
     }
 }

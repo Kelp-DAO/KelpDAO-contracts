@@ -223,7 +223,7 @@ contract RSETHUnpause is RSETHTest {
 
         vm.stopPrank();
 
-        assertFalse(rseth.paused(), "Contract is not paused");
+        assertFalse(rseth.paused(), "Contract is still paused");
     }
 }
 
