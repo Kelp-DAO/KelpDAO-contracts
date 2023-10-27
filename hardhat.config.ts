@@ -22,18 +22,18 @@ const config: HardhatUserConfig = {
   networks: {
     hardhat: {},
     goerli: {
-      url: process.env.PROVIDER_URL_TESTNET ?? "",
-      accounts: [process.env.OWNER_PRIVATE_KEY_TESTNET],
+      url: `https://eth-goerli.nodereal.io/v1/${process.env.API_KEY_NODE_REAL}`,
+      accounts: [process.env.DEPLOYER_PRIVATE_KEY ?? ""],
     },
     mainnet: {
-      url: process.env.PROVIDER_URL_MAINNET ?? "",
-      accounts: [process.env.OWNER_PRIVATE_KEY_MAINNET],
+      url: `https://eth-mainnet.nodereal.io/v1/${process.env.API_KEY_NODE_REAL}`,
+      accounts: [process.env.DEPLOYER_PRIVATE_KEY ?? ""],
     },
   },
   etherscan: {
     apiKey: {
       goerli: `${process.env.GOERLI_ETHERSCAN_API_KEY}`,
-      mainnet: `${process.env.ETHERSCAN_API_KEY}`,
+      mainnet: `${process.env.MAINNET_ETHERSCAN_API_KEY}`,
     },
   },
 };

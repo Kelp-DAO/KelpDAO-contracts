@@ -12,3 +12,6 @@ typechain-types
 # Hardhat files
 cache
 artifacts
+
+# foundry files
+broadcast

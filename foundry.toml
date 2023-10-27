@@ -25,5 +25,9 @@ wrap_comments = true
 
 [rpc_endpoints]
 localhost = "http://localhost:8545"
-goerli = "https://goerli.infura.io/v3/${API_KEY_INFURA}"
-mainnet = "https://eth-mainnet.g.alchemy.com/v2/${API_KEY_ALCHEMY}"
+goerli = "https://eth-goerli.nodereal.io/v1/${API_KEY_NODE_REAL}"
+mainnet = "https://eth-mainnet.nodereal.io/v1/${API_KEY_NODE_REAL}"
+
+[etherscan]
+goerli = {key = "${GOERLI_ETHERSCAN_API_KEY}"}
+mainnet = { key = "${MAINNET_ETHERSCAN_API_KEY}" }
