@@ -7,8 +7,6 @@ import { LRTOracle } from "contracts/LRTOracle.sol";
 import { UtilLib } from "contracts/utils/UtilLib.sol";
 import { ProxyAdmin } from "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
 import { TransparentUpgradeableProxy } from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
-import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 contract MockPriceOracle {
@@ -51,7 +49,7 @@ contract LRTOracleTest is LRTConfigTest {
         lrtConfig.setContract(LRTConstants.LRT_DEPOSIT_POOL, address(lrtDepositPoolMock));
         vm.stopPrank();
 
-        ProxyAdmin proxyAdmin = new ProxyAdmin(admin);
+        ProxyAdmin proxyAdmin = new ProxyAdmin();
         LRTOracle lrtOracleImpl = new LRTOracle();
         TransparentUpgradeableProxy lrtOracleProxy = new TransparentUpgradeableProxy(
             address(lrtOracleImpl),
@@ -69,7 +67,7 @@ contract LRTOracleInitialize is LRTOracleTest {
 
         vm.startPrank(admin);
         // cannot initialize again
-        vm.expectRevert(Initializable.InvalidInitialization.selector);
+        vm.expectRevert("Initializable: contract is already initialized");
         lrtOracle.initialize(address(lrtConfig));
         vm.stopPrank();
     }
@@ -204,7 +202,7 @@ contract LRTOraclePause is LRTOracleTest {
         vm.startPrank(manager);
         lrtOracle.pause();
 
-        vm.expectRevert(PausableUpgradeable.EnforcedPause.selector);
+        vm.expectRevert("Pausable: paused");
         lrtOracle.pause();
 
         vm.stopPrank();
@@ -241,7 +239,7 @@ contract LRTOracleUnpause is LRTOracleTest {
         vm.startPrank(admin);
         lrtOracle.unpause();
 
-        vm.expectRevert(PausableUpgradeable.ExpectedPause.selector);
+        vm.expectRevert("Pausable: not paused");
         lrtOracle.unpause();
 
         vm.stopPrank();

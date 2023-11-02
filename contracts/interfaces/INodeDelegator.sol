@@ -9,7 +9,6 @@ interface INodeDelegator {
 
     // errors
     error TokenTransferFailed();
-    error AssetNotSupported();
 
     // methods
     function depositAssetIntoStrategy(address asset) external;

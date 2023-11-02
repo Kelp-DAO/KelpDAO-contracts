@@ -6,7 +6,6 @@ import { LRTConfigTest, ILRTConfig, LRTConstants, UtilLib } from "./LRTConfigTes
 import { ChainlinkPriceOracle } from "../contracts/oracles/ChainlinkPriceOracle.sol";
 import { ProxyAdmin } from "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
 import { TransparentUpgradeableProxy } from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
-import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
 contract MockPriceAggregator {
     function latestAnswer() external pure returns (uint256) {
@@ -29,7 +28,7 @@ contract ChainlinkPriceOracleTest is LRTConfigTest {
         vm.prank(admin);
         lrtConfig.grantRole(LRTConstants.MANAGER, manager);
 
-        ProxyAdmin proxyAdmin = new ProxyAdmin(admin);
+        ProxyAdmin proxyAdmin = new ProxyAdmin();
         ChainlinkPriceOracle priceOracleImpl = new ChainlinkPriceOracle();
         TransparentUpgradeableProxy priceOracleProxy = new TransparentUpgradeableProxy(
             address(priceOracleImpl),
@@ -47,7 +46,7 @@ contract ChainlinkPriceOracleInitialize is ChainlinkPriceOracleTest {
 
         vm.startPrank(admin);
         // cannot initialize again
-        vm.expectRevert(Initializable.InvalidInitialization.selector);
+        vm.expectRevert("Initializable: contract is already initialized");
         priceOracle.initialize(address(lrtConfig));
         vm.stopPrank();
     }

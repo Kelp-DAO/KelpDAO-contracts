@@ -33,7 +33,7 @@ contract LRTDepositPoolTest is BaseTest, RSETHTest {
         super.setUp();
 
         // deploy LRTDepositPool
-        ProxyAdmin proxyAdmin = new ProxyAdmin(admin);
+        ProxyAdmin proxyAdmin = new ProxyAdmin();
         LRTDepositPool contractImpl = new LRTDepositPool();
         TransparentUpgradeableProxy contractProxy = new TransparentUpgradeableProxy(
             address(contractImpl),

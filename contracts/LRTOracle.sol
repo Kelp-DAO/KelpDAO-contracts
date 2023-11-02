@@ -12,7 +12,7 @@ import { ILRTDepositPool } from "./interfaces/ILRTDepositPool.sol";
 import { INodeDelegator } from "./interfaces/INodeDelegator.sol";
 
 import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
-import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
+import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 
 /// @title LRTOracle Contract
 /// @notice oracle contract that calculates the exchange rate of assets

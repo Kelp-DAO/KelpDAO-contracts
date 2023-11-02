@@ -7,8 +7,6 @@ import { IStrategy } from "contracts/interfaces/IStrategy.sol";
 import { NodeDelegator } from "contracts/NodeDelegator.sol";
 import { TransparentUpgradeableProxy } from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 import { ProxyAdmin } from "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
-import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
 
 contract MockEigenStrategyManager {
@@ -102,7 +100,7 @@ contract NodeDelegatorTest is LRTConfigTest {
         vm.stopPrank();
 
         // deploy NodeDelegator
-        ProxyAdmin proxyAdmin = new ProxyAdmin(admin);
+        ProxyAdmin proxyAdmin = new ProxyAdmin();
         NodeDelegator nodeDelImpl = new NodeDelegator();
         TransparentUpgradeableProxy nodeDelProxy = new TransparentUpgradeableProxy(
             address(nodeDelImpl),
@@ -120,7 +118,7 @@ contract NodeDelegatorInitialize is NodeDelegatorTest {
 
         vm.startPrank(admin);
         // cannot initialize again
-        vm.expectRevert(Initializable.InvalidInitialization.selector);
+        vm.expectRevert("Initializable: contract is already initialized");
         nodeDel.initialize(address(lrtConfig));
         vm.stopPrank();
     }
@@ -193,7 +191,7 @@ contract NodeDelegatorDepositAssetIntoStrategy is NodeDelegatorTest {
         vm.startPrank(manager);
         nodeDel.pause();
 
-        vm.expectRevert(PausableUpgradeable.EnforcedPause.selector);
+        vm.expectRevert("Pausable: paused");
         nodeDel.depositAssetIntoStrategy(address(rETH));
 
         vm.stopPrank();
@@ -240,7 +238,7 @@ contract NodeDelegatorTransferBackToLRTDepositPool is NodeDelegatorTest {
         vm.startPrank(manager);
         nodeDel.pause();
 
-        vm.expectRevert(PausableUpgradeable.EnforcedPause.selector);
+        vm.expectRevert("Pausable: paused");
         nodeDel.transferBackToLRTDepositPool(address(rETH), 10 ether);
 
         vm.stopPrank();
@@ -361,7 +359,7 @@ contract NodeDelegatorPause is NodeDelegatorTest {
         vm.startPrank(manager);
         nodeDel.pause();
 
-        vm.expectRevert(PausableUpgradeable.EnforcedPause.selector);
+        vm.expectRevert("Pausable: paused");
         nodeDel.pause();
 
         vm.stopPrank();
@@ -398,7 +396,7 @@ contract NodeDelegatorUnpause is NodeDelegatorTest {
         vm.startPrank(admin);
         nodeDel.unpause();
 
-        vm.expectRevert(PausableUpgradeable.ExpectedPause.selector);
+        vm.expectRevert("Pausable: not paused");
         nodeDel.unpause();
 
         vm.stopPrank();

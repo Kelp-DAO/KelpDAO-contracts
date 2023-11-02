@@ -138,6 +138,11 @@ $ npm test:coverage:report
 
 ### Goerli testnet
 
+| Contract Name           |  Address                        |
+|-------------------------|------------------------------------------------|
+| ProxyAdmin              | 0xD3dC5277662cE9ed552213393C4DBD78Ad3e61Fd     |
+| ProxyAdmin Owner        | 0x7E9bb9673aC38071a7699e6A3C48b8fBDE574Cd0     |
+
 ### Contract Implementations
 | Contract Name           | Implementation Address                        |
 |-------------------------|------------------------------------------------|

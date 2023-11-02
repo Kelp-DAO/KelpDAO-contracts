@@ -55,11 +55,11 @@ contract LRTConfig is ILRTConfig, AccessControlUpgradeable {
         UtilLib.checkNonZeroAddress(rsETH_);
 
         __AccessControl_init();
-        _setToken(LRTConstants.R_ETH_TOKEN, rETH);
         _setToken(LRTConstants.ST_ETH_TOKEN, stETH);
+        _setToken(LRTConstants.R_ETH_TOKEN, rETH);
         _setToken(LRTConstants.CB_ETH_TOKEN, cbETH);
-        _addNewSupportedAsset(rETH, 100_000 ether);
         _addNewSupportedAsset(stETH, 100_000 ether);
+        _addNewSupportedAsset(rETH, 100_000 ether);
         _addNewSupportedAsset(cbETH, 100_000 ether);
 
         _grantRole(DEFAULT_ADMIN_ROLE, admin);

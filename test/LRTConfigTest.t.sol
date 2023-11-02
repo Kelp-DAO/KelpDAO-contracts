@@ -6,10 +6,8 @@ import { BaseTest, MockToken } from "./BaseTest.t.sol";
 import { LRTConfig, ILRTConfig } from "contracts/LRTConfig.sol";
 import { LRTConstants } from "contracts/utils/LRTConstants.sol";
 import { UtilLib } from "contracts/utils/UtilLib.sol";
-import { IAccessControl } from "@openzeppelin/contracts/access/IAccessControl.sol";
 import { TransparentUpgradeableProxy } from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 import { ProxyAdmin } from "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
-import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
 contract LRTConfigTest is BaseTest {
     LRTConfig public lrtConfig;
@@ -26,7 +24,7 @@ contract LRTConfigTest is BaseTest {
         manager = makeAddr("manager");
         rsethMock = makeAddr("rsethMock");
 
-        ProxyAdmin proxyAdmin = new ProxyAdmin(admin);
+        ProxyAdmin proxyAdmin = new ProxyAdmin();
         LRTConfig lrtConfigImpl = new LRTConfig();
         TransparentUpgradeableProxy lrtConfigProxy = new TransparentUpgradeableProxy(
             address(lrtConfigImpl),
@@ -44,7 +42,7 @@ contract LRTConfigInitialize is LRTConfigTest {
 
         vm.startPrank(admin);
         // cannot initialize again
-        vm.expectRevert(Initializable.InvalidInitialization.selector);
+        vm.expectRevert("Initializable: contract is already initialized");
         lrtConfig.initialize(admin, address(stETH), address(rETH), address(cbETH), rsethMock);
         vm.stopPrank();
     }
@@ -119,10 +117,9 @@ contract LRTConfigAddNewSupportedAssetTest is LRTConfigTest {
 
     function test_RevertAddNewSupportedAssetIfNotManager() external {
         vm.startPrank(alice);
-        bytes memory revertData = abi.encodeWithSelector(
-            IAccessControl.AccessControlUnauthorizedAccount.selector, alice, LRTConstants.MANAGER
+        vm.expectRevert(
+            "AccessControl: account 0x328809bc894f92807417d2dad6b7c998c1afdac6 is missing role 0xaf290d8680820aad922855f39b306097b20e28774d6c1ad35a20325630c3a02c"
         );
-        vm.expectRevert(revertData);
         lrtConfig.addNewSupportedAsset(address(stETH), 1000);
         vm.stopPrank();
     }
@@ -159,10 +156,9 @@ contract LRTConfigUpdateAssetDepositLimitTest is LRTConfigTest {
 
     function test_RevertUpdateAssetDepositLimitIfNotManager() external {
         vm.startPrank(alice);
-        bytes memory revertData = abi.encodeWithSelector(
-            IAccessControl.AccessControlUnauthorizedAccount.selector, alice, LRTConstants.MANAGER
+        vm.expectRevert(
+            "AccessControl: account 0x328809bc894f92807417d2dad6b7c998c1afdac6 is missing role 0xaf290d8680820aad922855f39b306097b20e28774d6c1ad35a20325630c3a02c"
         );
-        vm.expectRevert(revertData);
         lrtConfig.updateAssetDepositLimit(address(stETH), 1000);
         vm.stopPrank();
     }
@@ -207,10 +203,9 @@ contract LRTConfigUpdateAssetStrategyTest is LRTConfigTest {
 
     function test_RevertUpdateAssetStrategyIfNotAdmin() external {
         vm.startPrank(alice);
-        bytes memory revertData = abi.encodeWithSelector(
-            IAccessControl.AccessControlUnauthorizedAccount.selector, alice, lrtConfig.DEFAULT_ADMIN_ROLE()
+        vm.expectRevert(
+            "AccessControl: account 0x328809bc894f92807417d2dad6b7c998c1afdac6 is missing role 0x0000000000000000000000000000000000000000000000000000000000000000"
         );
-        vm.expectRevert(revertData);
         lrtConfig.updateAssetStrategy(address(stETH), address(this));
         vm.stopPrank();
     }
@@ -304,10 +299,9 @@ contract LRTConfigSettersTest is LRTConfigTest {
 
     function test_RevertSetRSETHIfNotAdmin() external {
         vm.startPrank(alice);
-        bytes memory revertData = abi.encodeWithSelector(
-            IAccessControl.AccessControlUnauthorizedAccount.selector, alice, lrtConfig.DEFAULT_ADMIN_ROLE()
+        vm.expectRevert(
+            "AccessControl: account 0x328809bc894f92807417d2dad6b7c998c1afdac6 is missing role 0x0000000000000000000000000000000000000000000000000000000000000000"
         );
-        vm.expectRevert(revertData);
         lrtConfig.setRSETH(newRSETH);
         vm.stopPrank();
     }
@@ -329,10 +323,9 @@ contract LRTConfigSettersTest is LRTConfigTest {
 
     function test_RevertSetTokenIfNotAdmin() external {
         vm.startPrank(alice);
-        bytes memory revertData = abi.encodeWithSelector(
-            IAccessControl.AccessControlUnauthorizedAccount.selector, alice, lrtConfig.DEFAULT_ADMIN_ROLE()
+        vm.expectRevert(
+            "AccessControl: account 0x328809bc894f92807417d2dad6b7c998c1afdac6 is missing role 0x0000000000000000000000000000000000000000000000000000000000000000"
         );
-        vm.expectRevert(revertData);
         lrtConfig.setToken(LRTConstants.ST_ETH_TOKEN, address(this));
         vm.stopPrank();
     }
@@ -367,10 +360,9 @@ contract LRTConfigSettersTest is LRTConfigTest {
 
     function test_RevertSetContractIfNotAdmin() external {
         vm.startPrank(alice);
-        bytes memory revertData = abi.encodeWithSelector(
-            IAccessControl.AccessControlUnauthorizedAccount.selector, alice, lrtConfig.DEFAULT_ADMIN_ROLE()
+        vm.expectRevert(
+            "AccessControl: account 0x328809bc894f92807417d2dad6b7c998c1afdac6 is missing role 0x0000000000000000000000000000000000000000000000000000000000000000"
         );
-        vm.expectRevert(revertData);
         lrtConfig.setContract(LRTConstants.LRT_ORACLE, address(this));
         vm.stopPrank();
     }

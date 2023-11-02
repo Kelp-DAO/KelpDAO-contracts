@@ -4,10 +4,9 @@ pragma solidity 0.8.21;
 
 import { BaseTest } from "./BaseTest.t.sol";
 import { RSETH } from "contracts/RSETH.sol";
-import { LRTConfigTest, ILRTConfig, UtilLib, IAccessControl, LRTConstants } from "./LRTConfigTest.t.sol";
+import { LRTConfigTest, ILRTConfig, UtilLib, LRTConstants } from "./LRTConfigTest.t.sol";
 import { TransparentUpgradeableProxy } from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 import { ProxyAdmin } from "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
-import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 
 contract RSETHTest is BaseTest, LRTConfigTest {
     RSETH public rseth;
@@ -20,7 +19,7 @@ contract RSETHTest is BaseTest, LRTConfigTest {
         // initialize LRTConfig
         lrtConfig.initialize(admin, address(stETH), address(rETH), address(cbETH), rsethMock);
 
-        ProxyAdmin proxyAdmin = new ProxyAdmin(admin);
+        ProxyAdmin proxyAdmin = new ProxyAdmin();
         RSETH tokenImpl = new RSETH();
         TransparentUpgradeableProxy tokenProxy = new TransparentUpgradeableProxy(
             address(tokenImpl),
@@ -70,9 +69,9 @@ contract RSETHMint is RSETHTest {
 
     function test_RevertWhenCallerIsNotMinter() external {
         vm.startPrank(alice);
-        bytes memory revertData =
-            abi.encodeWithSelector(IAccessControl.AccessControlUnauthorizedAccount.selector, alice, rseth.MINTER_ROLE());
-        vm.expectRevert(revertData);
+        vm.expectRevert(
+            "AccessControl: account 0x328809bc894f92807417d2dad6b7c998c1afdac6 is missing role 0x9f2df0fed2c77648de5860a4cc508cd0818c85b8b8a1ab4ceeef8d981c8956a6"
+        );
         rseth.mint(address(this), 100 ether);
         vm.stopPrank();
     }
@@ -83,7 +82,7 @@ contract RSETHMint is RSETHTest {
         vm.stopPrank();
 
         vm.startPrank(minter);
-        vm.expectRevert(PausableUpgradeable.EnforcedPause.selector);
+        vm.expectRevert("Pausable: paused");
         rseth.mint(address(this), 1 ether);
         vm.stopPrank();
     }
@@ -125,9 +124,9 @@ contract RSETHBurnFrom is RSETHTest {
 
     function test_RevertWhenCallerIsNotBurner() external {
         vm.startPrank(bob);
-        bytes memory revertData =
-            abi.encodeWithSelector(IAccessControl.AccessControlUnauthorizedAccount.selector, bob, rseth.BURNER_ROLE());
-        vm.expectRevert(revertData);
+        vm.expectRevert(
+            "AccessControl: account 0x1d96f2f6bef1202e4ce1ff6dad0c2cb002861d3e is missing role 0x3c11d16cbaffd01df69ce1c404f6340ee057498f5f00246190ea54220576a848"
+        );
         rseth.burnFrom(address(this), 100 ether);
         vm.stopPrank();
     }
@@ -137,7 +136,7 @@ contract RSETHBurnFrom is RSETHTest {
         rseth.pause();
 
         vm.prank(burner);
-        vm.expectRevert(PausableUpgradeable.EnforcedPause.selector);
+        vm.expectRevert("Pausable: paused");
         rseth.burnFrom(address(this), 100 ether);
     }
 
@@ -170,7 +169,7 @@ contract RSETHPause is RSETHTest {
         vm.startPrank(manager);
         rseth.pause();
 
-        vm.expectRevert(PausableUpgradeable.EnforcedPause.selector);
+        vm.expectRevert("Pausable: paused");
         rseth.pause();
 
         vm.stopPrank();
@@ -199,10 +198,9 @@ contract RSETHUnpause is RSETHTest {
 
     function test_RevertWhenCallerIsNotLRTAdmin() external {
         vm.startPrank(alice);
-        bytes memory revertData = abi.encodeWithSelector(
-            IAccessControl.AccessControlUnauthorizedAccount.selector, alice, rseth.DEFAULT_ADMIN_ROLE()
+        vm.expectRevert(
+            "AccessControl: account 0x328809bc894f92807417d2dad6b7c998c1afdac6 is missing role 0x0000000000000000000000000000000000000000000000000000000000000000"
         );
-        vm.expectRevert(revertData);
         rseth.unpause();
         vm.stopPrank();
     }
@@ -211,7 +209,7 @@ contract RSETHUnpause is RSETHTest {
         vm.startPrank(admin);
         rseth.unpause();
 
-        vm.expectRevert(PausableUpgradeable.ExpectedPause.selector);
+        vm.expectRevert("Pausable: not paused");
         rseth.unpause();
 
         vm.stopPrank();
@@ -235,10 +233,9 @@ contract RSETHUpdateLRTConfig is RSETHTest {
 
     function test_RevertWhenCallerIsNotLRTAdmin() external {
         vm.startPrank(alice);
-        bytes memory revertData = abi.encodeWithSelector(
-            IAccessControl.AccessControlUnauthorizedAccount.selector, alice, rseth.DEFAULT_ADMIN_ROLE()
+        vm.expectRevert(
+            "AccessControl: account 0x328809bc894f92807417d2dad6b7c998c1afdac6 is missing role 0x0000000000000000000000000000000000000000000000000000000000000000"
         );
-        vm.expectRevert(revertData);
         rseth.updateLRTConfig(address(lrtConfig));
         vm.stopPrank();
     }
