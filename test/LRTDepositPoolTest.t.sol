@@ -125,6 +125,23 @@ contract LRTDepositPoolDepositAsset is LRTDepositPoolTest {
         assertEq(lrtDepositPool.totalAssetDeposits(rETHAddress), 2 ether, "Total asset deposits is not set");
         assertGt(aliceBalanceAfter, aliceBalanceBefore, "Alice balance is not set");
     }
+
+    function test_FuzzDepositAsset(uint256 amountDeposited) external {
+        uint256 stETHDepositLimit = lrtConfig.depositLimitByAsset(address(stETH));
+        vm.assume(amountDeposited > 0 && amountDeposited <= stETHDepositLimit);
+
+        uint256 aliceBalanceBefore = rseth.balanceOf(address(alice));
+
+        vm.startPrank(alice);
+        stETH.approve(address(lrtDepositPool), amountDeposited);
+        lrtDepositPool.depositAsset(address(stETH), amountDeposited);
+        vm.stopPrank();
+
+        uint256 aliceBalanceAfter = rseth.balanceOf(address(alice));
+
+        assertEq(lrtDepositPool.totalAssetDeposits(address(stETH)), amountDeposited, "Total asset deposits is not set");
+        assertGt(aliceBalanceAfter, aliceBalanceBefore, "Alice balance is not set");
+    }
 }
 
 contract LRTDepositPoolGetRsETHAmountToMint is LRTDepositPoolTest {
