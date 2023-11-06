@@ -170,7 +170,7 @@ contract LRTDepositPool is ILRTDepositPool, LRTConfigRoleChecker, PausableUpgrad
         }
     }
 
-    /// @notice transfer asset to node delegator contract
+    /// @notice transfers asset lying in this DepositPool to node delegator contract
     /// @dev only callable by LRT manager
     /// @param ndcIndex Index of NodeDelegator contract address in nodeDelegatorQueue
     /// @param asset Asset address

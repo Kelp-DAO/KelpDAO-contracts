@@ -81,7 +81,16 @@ jobs:
           )" >> $GITHUB_ENV
 
       - name: "Run the tests"
-        run: "forge test"
+        run: |
+          forge test --no-match-contract "(Skip|IntegrationTest)"
+
+      - name: "Run Integration tests"
+        run: |
+          export PROVIDER_URL_TESTNET=${{ secrets.PROVIDER_URL_TESTNET }}
+          export STETH_STRATEGY=${{ secrets.STETH_STRATEGY }}
+          export RETH_STRATEGY=${{ secrets.RETH_STRATEGY }}
+          export CBETH_STRATEGY=${{ secrets.CBETH_STRATEGY }}
+          forge test --fork-url ${{ secrets.PROVIDER_URL_TESTNET }} --match-contract "IntegrationTest"
 
       - name: "Add test summary"
         run: |

@@ -156,6 +156,9 @@ contract DeployLRT is Script {
         console.log("ProxyAdmin deployed at: ", address(proxyAdmin));
         console.log("Owner of ProxyAdmin: ", proxyAdmin.owner());
 
+        console.log("ProxyAdmin deployed at: ", address(proxyAdmin));
+        console.log("Owner of ProxyAdmin: ", proxyAdminOwner);
+
         // deploy implementation contracts
         address lrtConfigImplementation = address(new LRTConfig());
         address RSETHImplementation = address(new RSETH());

@@ -45,7 +45,7 @@ contract NodeDelegator is INodeDelegator, LRTConfigRoleChecker, PausableUpgradea
         IERC20(asset).approve(eigenlayerStrategyManagerAddress, type(uint256).max);
     }
 
-    /// @notice Deposits an asset into its strategy
+    /// @notice Deposits an asset lying in this NDC into its strategy
     /// @dev only supported assets can be deposited and only called by the LRT manager
     /// @param asset the asset to deposit
     function depositAssetIntoStrategy(address asset)

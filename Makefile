@@ -5,6 +5,10 @@
 # you're running into issues with fork tests
 -include .env
 
+# forge coverage
+
+coverage :; forge coverage --report lcov && lcov --remove lcov.info  -o lcov.info 'test/*' 'script/*'
+
 # deployment commands
 deploy-lrt-testnet :; forge script script/foundry-scripts/DeployLRT.s.sol:DeployLRT --rpc-url goerli  --private-key ${DEPLOYER_PRIVATE_KEY} --broadcast --verify -vvv
 
@@ -14,6 +18,11 @@ deploy-lrt-local-test :; forge script script/foundry-scripts/DeployLRT.s.sol:Dep
 upgrade-lrt-testnet :; forge script script/foundry-scripts/UpgradeLRT.s.sol:UpgradeLRT --rpc-url goerli  --private-key ${DEPLOYER_PRIVATE_KEY} --broadcast --verify -vvv
 
 upgrade-lrt-local-test :; forge script script/foundry-scripts/UpgradeLRT.s.sol:UpgradeLRT --rpc-url localhost --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80  --froms 0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266 --broadcast -vvv
+
+# upgrade commands
+upgrade-lrt-testnet :; forge script script/foundry-scripts/UpgradeLRT.s.sol:UpgradeLRT --rpc-url goerli  --private-key ${DEPLOYER_PRIVATE_KEY} --broadcast --verify -vvv
+
+upgrade-lrt-local-test :; forge script script/foundry-scripts/UpgradeLRT.s.sol:UpgradeLRT --rpc-url localhost --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80  --froms 0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266 --broadcast -vvvv
 
 # verify commands
 ## example: contractAddress=<contractAddress> contractPath=<contract-path> make verify-lrt-proxy-testnet
