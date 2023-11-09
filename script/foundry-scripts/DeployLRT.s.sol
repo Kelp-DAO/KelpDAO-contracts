@@ -147,14 +147,11 @@ contract DeployLRT is Script {
 
     function run() external {
         vm.startBroadcast();
-        proxyAdminOwner = msg.sender; // TODO: change to multisig when deploying to production
 
         bytes32 salt = keccak256(abi.encodePacked("LRT-Stader-Labs"));
         proxyFactory = new ProxyFactory();
         proxyAdmin = new ProxyAdmin(); // msg.sender becomes the owner of ProxyAdmin
-
-        console.log("ProxyAdmin deployed at: ", address(proxyAdmin));
-        console.log("Owner of ProxyAdmin: ", proxyAdmin.owner());
+        proxyAdminOwner = proxyAdmin.owner(); // TODO: change to multisig when deploying to production
 
         console.log("ProxyAdmin deployed at: ", address(proxyAdmin));
         console.log("Owner of ProxyAdmin: ", proxyAdminOwner);

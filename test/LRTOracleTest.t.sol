@@ -23,6 +23,10 @@ contract MockLRTDepositPool {
     {
         return (0, 0, 1 ether);
     }
+
+    function getTotalAssetDeposits(address) external pure returns (uint256) {
+        return 1 ether;
+    }
 }
 
 contract LRTOracleTest is LRTConfigTest {

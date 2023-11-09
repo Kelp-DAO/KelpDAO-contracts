@@ -122,7 +122,7 @@ contract LRTDepositPoolDepositAsset is LRTDepositPoolTest {
         uint256 aliceBalanceAfter = rseth.balanceOf(address(alice));
         vm.stopPrank();
 
-        assertEq(lrtDepositPool.totalAssetDeposits(rETHAddress), 2 ether, "Total asset deposits is not set");
+        assertEq(lrtDepositPool.getTotalAssetDeposits(rETHAddress), 2 ether, "Total asset deposits is not set");
         assertGt(aliceBalanceAfter, aliceBalanceBefore, "Alice balance is not set");
     }
 
@@ -139,7 +139,9 @@ contract LRTDepositPoolDepositAsset is LRTDepositPoolTest {
 
         uint256 aliceBalanceAfter = rseth.balanceOf(address(alice));
 
-        assertEq(lrtDepositPool.totalAssetDeposits(address(stETH)), amountDeposited, "Total asset deposits is not set");
+        assertEq(
+            lrtDepositPool.getTotalAssetDeposits(address(stETH)), amountDeposited, "Total asset deposits is not set"
+        );
         assertGt(aliceBalanceAfter, aliceBalanceBefore, "Alice balance is not set");
     }
 }
@@ -224,9 +226,9 @@ contract LRTDepositPoolGetNodeDelegatorQueue is LRTDepositPoolTest {
     }
 
     function test_GetNodeDelegatorQueue() external {
-        address nodeDelegatorContractOne = makeAddr("nodeDelegatorContractOne");
-        address nodeDelegatorContractTwo = makeAddr("nodeDelegatorContractTwo");
-        address nodeDelegatorContractThree = makeAddr("nodeDelegatorContractOne");
+        address nodeDelegatorContractOne = address(new MockNodeDelegator());
+        address nodeDelegatorContractTwo = address(new MockNodeDelegator());
+        address nodeDelegatorContractThree = address(new MockNodeDelegator());
 
         address[] memory nodeDelegatorQueue = new address[](3);
         nodeDelegatorQueue[0] = nodeDelegatorContractOne;
@@ -238,6 +240,46 @@ contract LRTDepositPoolGetNodeDelegatorQueue is LRTDepositPoolTest {
         vm.stopPrank();
 
         assertEq(lrtDepositPool.getNodeDelegatorQueue(), nodeDelegatorQueue, "Node delegator queue is not set");
+    }
+}
+
+contract LRTDepositPoolGetTotalAssetDeposits is LRTDepositPoolTest {
+    function setUp() public override {
+        super.setUp();
+
+        // initialize LRTDepositPool
+        lrtDepositPool.initialize(address(lrtConfig));
+    }
+
+    function test_GetTotalAssetDeposits() external {
+        address nodeDelegatorContractOne = address(new MockNodeDelegator());
+        address nodeDelegatorContractTwo = address(new MockNodeDelegator());
+        address nodeDelegatorContractThree = address(new MockNodeDelegator());
+
+        address[] memory nodeDelegatorQueue = new address[](3);
+        nodeDelegatorQueue[0] = nodeDelegatorContractOne;
+        nodeDelegatorQueue[1] = nodeDelegatorContractTwo;
+        nodeDelegatorQueue[2] = nodeDelegatorContractThree;
+
+        vm.startPrank(admin);
+        lrtDepositPool.addNodeDelegatorContractToQueue(nodeDelegatorQueue);
+        vm.stopPrank();
+
+        uint256 amountToDeposit = 1 ether;
+
+        uint256 totalDepositsBefore = lrtDepositPool.getTotalAssetDeposits(address(rETH));
+
+        // deposit rETH
+        vm.startPrank(alice);
+        rETH.approve(address(lrtDepositPool), amountToDeposit);
+        lrtDepositPool.depositAsset(address(rETH), amountToDeposit);
+        vm.stopPrank();
+
+        assertEq(
+            lrtDepositPool.getTotalAssetDeposits(address(rETH)),
+            totalDepositsBefore + amountToDeposit,
+            "Incorrect total asset deposits amount"
+        );
     }
 }
 
@@ -300,9 +342,9 @@ contract LRTDepositPoolAddNodeDelegatorContractToQueue is LRTDepositPoolTest {
         // initialize LRTDepositPool
         lrtDepositPool.initialize(address(lrtConfig));
 
-        nodeDelegatorContractOne = makeAddr("nodeDelegatorContractOne");
-        nodeDelegatorContractTwo = makeAddr("nodeDelegatorContractTwo");
-        nodeDelegatorContractThree = makeAddr("nodeDelegatorContractThree");
+        nodeDelegatorContractOne = address(new MockNodeDelegator());
+        nodeDelegatorContractTwo = address(new MockNodeDelegator());
+        nodeDelegatorContractThree = address(new MockNodeDelegator());
 
         nodeDelegatorQueueProspectives.push(nodeDelegatorContractOne);
         nodeDelegatorQueueProspectives.push(nodeDelegatorContractTwo);
@@ -375,9 +417,9 @@ contract LRTDepositPoolTransferAssetToNodeDelegator is LRTDepositPoolTest {
         // initialize LRTDepositPool
         lrtDepositPool.initialize(address(lrtConfig));
 
-        nodeDelegatorContractOne = makeAddr("nodeDelegatorContractOne");
-        nodeDelegatorContractTwo = makeAddr("nodeDelegatorContractTwo");
-        nodeDelegatorContractThree = makeAddr("nodeDelegatorContractThree");
+        nodeDelegatorContractOne = address(new MockNodeDelegator());
+        nodeDelegatorContractTwo = address(new MockNodeDelegator());
+        nodeDelegatorContractThree = address(new MockNodeDelegator());
 
         nodeDelegatorQueueProspectives.push(nodeDelegatorContractOne);
         nodeDelegatorQueueProspectives.push(nodeDelegatorContractTwo);
@@ -410,11 +452,21 @@ contract LRTDepositPoolTransferAssetToNodeDelegator is LRTDepositPoolTest {
         lrtDepositPool.depositAsset(address(rETH), 3 ether);
         vm.stopPrank();
 
+        uint256 indexOfNodeDelegatorContractOneInNDArray;
+        address[] memory nodeDelegatorArray = lrtDepositPool.getNodeDelegatorQueue();
+        for (uint256 i = 0; i < nodeDelegatorArray.length; i++) {
+            if (lrtDepositPool.nodeDelegatorQueue(i) == nodeDelegatorContractOne) {
+                indexOfNodeDelegatorContractOneInNDArray = i;
+                break;
+            }
+        }
+
         // transfer 1 ether rETH to node delegator contract one
         vm.startPrank(manager);
-        lrtDepositPool.transferAssetToNodeDelegator(0, address(rETH), 1 ether);
+        lrtDepositPool.transferAssetToNodeDelegator(indexOfNodeDelegatorContractOneInNDArray, address(rETH), 1 ether);
         vm.stopPrank();
 
+        assertEq(rETH.balanceOf(address(lrtDepositPool)), 2 ether, "Asset amount in lrtDepositPool is incorrect");
         assertEq(rETH.balanceOf(nodeDelegatorContractOne), 1 ether, "Asset is not transferred to node delegator");
     }
 }

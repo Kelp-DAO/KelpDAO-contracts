@@ -67,10 +67,7 @@ contract LRTOracle is ILRTOracle, LRTConfigRoleChecker, PausableUpgradeable {
             address asset = supportedAssets[asset_idx];
             uint256 assetER = getAssetPrice(asset);
 
-            (uint256 assetLyingInDepositPool, uint256 assetLyingInNDCs, uint256 assetStakedInEigenLayer) =
-                ILRTDepositPool(lrtDepositPoolAddr).getAssetDistributionData(asset);
-
-            uint256 totalAssetAmt = assetLyingInDepositPool + assetLyingInNDCs + assetStakedInEigenLayer;
+            uint256 totalAssetAmt = ILRTDepositPool(lrtDepositPoolAddr).getTotalAssetDeposits(asset);
             totalETHInPool += totalAssetAmt * assetER;
 
             unchecked {

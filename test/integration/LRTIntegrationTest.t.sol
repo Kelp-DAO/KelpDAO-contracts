@@ -37,7 +37,7 @@ contract LRTIntegrationTest is Test {
         string memory goerliRPC = vm.envString("PROVIDER_URL_TESTNET");
         goerliFork = vm.createSelectFork(goerliRPC);
 
-        lrtDepositPool = LRTDepositPool(0x55052ba1a135c43a17cf6CeE58a59c782CeF1Bcf);
+        lrtDepositPool = LRTDepositPool(0x907db5022b333128300eE7E5458cef8c32ff5A86);
         lrtConfig = LRTConfig(0x99Abf439a4e9910934Dea47082286a04986820b5);
         rseth = RSETH(0xDa3FF613C5A44F743E5F46c43D1f6F897F425205);
         lrtOracle = LRTOracle(0xE64060B802563d6B74d5CC72F0ba27a5a1B5B7f7);
@@ -72,7 +72,7 @@ contract LRTDepositPoolIntegrationTest is LRTIntegrationTest {
         // stWhale balance of rsETH before deposit
         uint256 stWhaleBalanceBefore = rseth.balanceOf(stWhale);
         // total asset deposits before deposit for stETH
-        uint256 totalAssetDepositsBefore = lrtDepositPool.totalAssetDeposits(stETHAddress);
+        uint256 totalAssetDepositsBefore = lrtDepositPool.getTotalAssetDeposits(stETHAddress);
         // balance of lrtDepositPool before deposit
         uint256 lrtDepositPoolBalanceBefore = ERC20(stETHAddress).balanceOf(address(lrtDepositPool));
 
@@ -89,7 +89,7 @@ contract LRTDepositPoolIntegrationTest is LRTIntegrationTest {
         uint256 stWhaleBalanceAfter = rseth.balanceOf(address(stWhale));
 
         assertApproxEqAbs(
-            lrtDepositPool.totalAssetDeposits(stETHAddress),
+            lrtDepositPool.getTotalAssetDeposits(stETHAddress),
             totalAssetDepositsBefore + amountToDeposit,
             1,
             "Total asset deposits check is incorrect"
@@ -109,7 +109,7 @@ contract LRTDepositPoolIntegrationTest is LRTIntegrationTest {
         // rETHWhale balance of rsETH before deposit
         uint256 rETHWhaleBalanceBefore = rseth.balanceOf(rETHWhale);
         // total asset deposits before deposit for rETHETH
-        uint256 totalAssetDepositsBefore = lrtDepositPool.totalAssetDeposits(rETHAddress);
+        uint256 totalAssetDepositsBefore = lrtDepositPool.getTotalAssetDeposits(rETHAddress);
         // balance of lrtDepositPool before deposit
         uint256 lrtDepositPoolBalanceBefore = ERC20(rETHAddress).balanceOf(address(lrtDepositPool));
 
@@ -126,7 +126,7 @@ contract LRTDepositPoolIntegrationTest is LRTIntegrationTest {
         uint256 rETHWhaleBalanceAfter = rseth.balanceOf(address(rETHWhale));
 
         assertEq(
-            lrtDepositPool.totalAssetDeposits(rETHAddress),
+            lrtDepositPool.getTotalAssetDeposits(rETHAddress),
             totalAssetDepositsBefore + amountToDeposit,
             "Total asset deposits check is incorrect"
         );
@@ -186,7 +186,7 @@ contract LRTDepositPoolIntegrationTest is LRTIntegrationTest {
         uint256 amountToTransfer = 1e18;
 
         uint256 lrtDepositPoolBalanceBefore = ERC20(stETHAddress).balanceOf(address(lrtDepositPool));
-        uint256 totalDepositsInStETHBeforeDeposit = lrtDepositPool.totalAssetDeposits(stETHAddress);
+        uint256 totalDepositsInStETHBeforeDeposit = lrtDepositPool.getTotalAssetDeposits(stETHAddress);
 
         vm.startPrank(stWhale);
         ERC20(stETHAddress).approve(address(lrtDepositPool), amountToTransfer);
@@ -218,7 +218,7 @@ contract LRTDepositPoolIntegrationTest is LRTIntegrationTest {
         uint256 nodeDelegator1BalanceAfter = ERC20(stETHAddress).balanceOf(address(nodeDelegator1));
 
         assertApproxEqAbs(
-            lrtDepositPool.totalAssetDeposits(stETHAddress),
+            lrtDepositPool.getTotalAssetDeposits(stETHAddress),
             totalDepositsInStETHBeforeDeposit + amountToTransfer,
             1,
             "Total asset deposits is not set"
@@ -243,7 +243,7 @@ contract LRTDepositPoolIntegrationTest is LRTIntegrationTest {
         uint256 amountToTransfer = 1e18;
 
         uint256 lrtDepositPoolBalanceBefore = ERC20(rETHAddress).balanceOf(address(lrtDepositPool));
-        uint256 totalDepositsInrETHBeforeDeposit = lrtDepositPool.totalAssetDeposits(rETHAddress);
+        uint256 totalDepositsInrETHBeforeDeposit = lrtDepositPool.getTotalAssetDeposits(rETHAddress);
 
         vm.startPrank(stWhale);
         ERC20(rETHAddress).approve(address(lrtDepositPool), amountToTransfer);
@@ -274,7 +274,7 @@ contract LRTDepositPoolIntegrationTest is LRTIntegrationTest {
         uint256 nodeDelegator1BalanceAfter = ERC20(rETHAddress).balanceOf(address(nodeDelegator1));
 
         assertEq(
-            lrtDepositPool.totalAssetDeposits(rETHAddress),
+            lrtDepositPool.getTotalAssetDeposits(rETHAddress),
             totalDepositsInrETHBeforeDeposit + amountToTransfer,
             "Total asset deposits is not set"
         );

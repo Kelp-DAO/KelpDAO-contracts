@@ -20,7 +20,6 @@ contract LRTDepositPool is ILRTDepositPool, LRTConfigRoleChecker, PausableUpgrad
     uint256 public maxNodeDelegatorCount;
 
     address[] public nodeDelegatorQueue;
-    mapping(address asset => uint256 depositAmount) public totalAssetDeposits;
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
@@ -42,11 +41,20 @@ contract LRTDepositPool is ILRTDepositPool, LRTConfigRoleChecker, PausableUpgrad
                             view functions
     //////////////////////////////////////////////////////////////*/
 
+    /// @notice gets the total asset present in protocol
+    /// @param asset Asset address
+    /// @return totalAssetDeposit total asset present in protocol
+    function getTotalAssetDeposits(address asset) public view override returns (uint256 totalAssetDeposit) {
+        (uint256 assetLyingInDepositPool, uint256 assetLyingInNDCs, uint256 assetStakedInEigenLayer) =
+            getAssetDistributionData(asset);
+        return (assetLyingInDepositPool + assetLyingInNDCs + assetStakedInEigenLayer);
+    }
+
     /// @notice gets the current limit of asset deposit
     /// @param asset Asset address
     /// @return currentLimit Current limit of asset deposit
     function getAssetCurrentLimit(address asset) public view override returns (uint256) {
-        return lrtConfig.depositLimitByAsset(asset) - totalAssetDeposits[asset];
+        return lrtConfig.depositLimitByAsset(asset) - getTotalAssetDeposits(asset);
     }
 
     /// @dev get node delegator queue
@@ -61,7 +69,7 @@ contract LRTDepositPool is ILRTDepositPool, LRTConfigRoleChecker, PausableUpgrad
     /// @return assetLyingInNDCs asset amount sum lying in all NDC contract
     /// @return assetStakedInEigenLayer asset amount staked in eigen layer through all NDCs
     function getAssetDistributionData(address asset)
-        external
+        public
         view
         override
         onlySupportedAsset(asset)
@@ -128,9 +136,6 @@ contract LRTDepositPool is ILRTDepositPool, LRTConfigRoleChecker, PausableUpgrad
         if (!IERC20(asset).transferFrom(msg.sender, address(this), depositAmount)) {
             revert TokenTransferFailed();
         }
-
-        // effects
-        totalAssetDeposits[asset] += depositAmount;
 
         // interactions
         uint256 rsethAmountMinted = _mintRsETH(asset, depositAmount);
