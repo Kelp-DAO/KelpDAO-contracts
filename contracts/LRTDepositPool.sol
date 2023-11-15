@@ -67,7 +67,7 @@ contract LRTDepositPool is ILRTDepositPool, LRTConfigRoleChecker, PausableUpgrad
     /// @param asset the asset to get the total amount of
     /// @return assetLyingInDepositPool asset amount lying in this LRTDepositPool contract
     /// @return assetLyingInNDCs asset amount sum lying in all NDC contract
-    /// @return assetStakedInEigenLayer asset amount staked in eigen layer through all NDCs
+    /// @return assetStakedInEigenLayer asset amount deposited in eigen layer strateges through all NDCs
     function getAssetDistributionData(address asset)
         public
         view
@@ -157,7 +157,7 @@ contract LRTDepositPool is ILRTDepositPool, LRTConfigRoleChecker, PausableUpgrad
     }
 
     /// @notice add new node delegator contract addresses
-    /// @dev only callable by LRT manager
+    /// @dev only callable by LRT admin
     /// @param nodeDelegatorContracts Array of NodeDelegator contract addresses
     function addNodeDelegatorContractToQueue(address[] calldata nodeDelegatorContracts) external onlyLRTAdmin {
         uint256 length = nodeDelegatorContracts.length;

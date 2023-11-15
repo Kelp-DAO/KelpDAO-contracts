@@ -12,11 +12,11 @@ import { ILRTDepositPool } from "./interfaces/ILRTDepositPool.sol";
 import { INodeDelegator } from "./interfaces/INodeDelegator.sol";
 
 import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
-import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
+import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
 /// @title LRTOracle Contract
 /// @notice oracle contract that calculates the exchange rate of assets
-contract LRTOracle is ILRTOracle, LRTConfigRoleChecker, PausableUpgradeable {
+contract LRTOracle is ILRTOracle, LRTConfigRoleChecker, Initializable {
     mapping(address asset => address priceOracle) public override assetPriceOracle;
 
     /// @custom:oz-upgrades-unsafe-allow constructor
@@ -28,7 +28,6 @@ contract LRTOracle is ILRTOracle, LRTConfigRoleChecker, PausableUpgradeable {
     /// @param lrtConfigAddr LRT config address
     function initialize(address lrtConfigAddr) external initializer {
         UtilLib.checkNonZeroAddress(lrtConfigAddr);
-        __Pausable_init();
 
         lrtConfig = ILRTConfig(lrtConfigAddr);
         emit UpdatedLRTConfig(lrtConfigAddr);
@@ -96,15 +95,5 @@ contract LRTOracle is ILRTOracle, LRTConfigRoleChecker, PausableUpgradeable {
         UtilLib.checkNonZeroAddress(priceOracle);
         assetPriceOracle[asset] = priceOracle;
         emit AssetPriceOracleUpdate(asset, priceOracle);
-    }
-
-    /// @dev Triggers stopped state. Contract must not be paused.
-    function pause() external onlyLRTManager {
-        _pause();
-    }
-
-    /// @dev Returns to normal state. Contract must be paused
-    function unpause() external onlyLRTAdmin {
-        _unpause();
     }
 }

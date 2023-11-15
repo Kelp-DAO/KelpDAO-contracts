@@ -570,42 +570,6 @@ contract LRTOracleIntegrationTest is LRTIntegrationTest {
 
         assertEq(lrtOracle.assetPriceOracle(stETHAddress), randomPriceOracleAddress);
     }
-
-    function test_RevertWhenCallerIsNotLRTManager() external {
-        vm.expectRevert(ILRTConfig.CallerNotLRTConfigManager.selector);
-        lrtOracle.pause();
-    }
-
-    function test_RevertWhenContractIsAlreadyPaused() external {
-        vm.startPrank(manager);
-        lrtOracle.pause();
-
-        vm.expectRevert("Pausable: paused");
-        lrtOracle.pause();
-
-        vm.stopPrank();
-    }
-
-    function test_Pause() external {
-        vm.startPrank(manager);
-        lrtOracle.pause();
-
-        vm.stopPrank();
-
-        assertTrue(lrtOracle.paused(), "Contract is not paused");
-    }
-
-    function test_Unpause() external {
-        vm.prank(manager);
-        lrtOracle.pause();
-
-        assertTrue(lrtOracle.paused(), "Contract is not paused");
-
-        vm.prank(admin);
-        lrtOracle.unpause();
-
-        assertFalse(lrtOracle.paused(), "Contract is not unpaused");
-    }
 }
 
 contract RSETHIntegrationTest is LRTIntegrationTest {
