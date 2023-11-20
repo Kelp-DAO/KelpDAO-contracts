@@ -178,13 +178,15 @@ contract LRTOracleFetchRSETHPrice is LRTOracleTest {
     }
 
     function test_FetchRSETHPriceWhenRSETHSupplyIsZero() external {
+        lrtOracle.updateRSETHPrice();
         assertEq(rsETHMock.totalSupply(), 0);
-        assertEq(lrtOracle.getRSETHPrice(), 1 ether);
+        assertEq(lrtOracle.rsETHPrice(), 1 ether);
     }
 
     function test_FetchRSETHPrice() external {
         vm.mockCall(address(rsETHMock), abi.encodeWithSelector(ERC20.totalSupply.selector), abi.encode(3 ether));
+        lrtOracle.updateRSETHPrice();
         assertEq(rsETHMock.totalSupply(), 3 ether);
-        assertEq(lrtOracle.getRSETHPrice(), 2 ether);
+        assertEq(lrtOracle.rsETHPrice(), 2 ether);
     }
 }

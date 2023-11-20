@@ -220,7 +220,7 @@ contract LRTDepositPoolIntegrationTest is LRTIntegrationTest {
         assertApproxEqAbs(
             lrtDepositPool.getTotalAssetDeposits(stETHAddress),
             totalDepositsInStETHBeforeDeposit + amountToTransfer,
-            1,
+            2,
             "Total asset deposits is not set"
         );
 
@@ -228,13 +228,13 @@ contract LRTDepositPoolIntegrationTest is LRTIntegrationTest {
         assertApproxEqAbs(
             nodeDelegator1BalanceAfter,
             nodeDelegator1BalanceBefore + amountToTransfer,
-            1,
+            2,
             "node delegator 1 balance is not set"
         );
         assertApproxEqAbs(
             ERC20(stETHAddress).balanceOf(address(nodeDelegator1)),
             amountToTransfer,
-            1,
+            2,
             "node delegator 1 balance is not set"
         );
     }

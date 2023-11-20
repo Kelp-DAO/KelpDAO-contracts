@@ -15,7 +15,7 @@ contract LRTOracleMock {
         return 1e18;
     }
 
-    function getRSETHPrice() external pure returns (uint256) {
+    function rsETHPrice() external pure returns (uint256) {
         return 1e18;
     }
 }

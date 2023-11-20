@@ -18,6 +18,7 @@ import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/I
 /// @notice oracle contract that calculates the exchange rate of assets
 contract LRTOracle is ILRTOracle, LRTConfigRoleChecker, Initializable {
     mapping(address asset => address priceOracle) public override assetPriceOracle;
+    uint256 public override rsETHPrice;
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
@@ -45,15 +46,15 @@ contract LRTOracle is ILRTOracle, LRTConfigRoleChecker, Initializable {
         return IPriceFetcher(assetPriceOracle[asset]).getAssetPrice(asset);
     }
 
-    /// @notice Provides RSETH/ETH exchange rate
+    /// @notice updates RSETH/ETH exchange rate
     /// @dev calculates based on stakedAsset value received from eigen layer
-    /// @return rsETHPrice exchange rate of RSETH
-    function getRSETHPrice() external view returns (uint256 rsETHPrice) {
+    function updateRSETHPrice() external {
         address rsETHTokenAddress = lrtConfig.rsETH();
         uint256 rsEthSupply = IRSETH(rsETHTokenAddress).totalSupply();
 
         if (rsEthSupply == 0) {
-            return 1 ether;
+            rsETHPrice = 1 ether;
+            return;
         }
 
         uint256 totalETHInPool;
@@ -74,7 +75,7 @@ contract LRTOracle is ILRTOracle, LRTConfigRoleChecker, Initializable {
             }
         }
 
-        return totalETHInPool / rsEthSupply;
+        rsETHPrice = totalETHInPool / rsEthSupply;
     }
 
     /*//////////////////////////////////////////////////////////////
