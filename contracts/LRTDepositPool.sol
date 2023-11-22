@@ -67,7 +67,7 @@ contract LRTDepositPool is ILRTDepositPool, LRTConfigRoleChecker, PausableUpgrad
     /// @param asset the asset to get the total amount of
     /// @return assetLyingInDepositPool asset amount lying in this LRTDepositPool contract
     /// @return assetLyingInNDCs asset amount sum lying in all NDC contract
-    /// @return assetStakedInEigenLayer asset amount deposited in eigen layer strateges through all NDCs
+    /// @return assetStakedInEigenLayer asset amount deposited in eigen layer strategies through all NDCs
     function getAssetDistributionData(address asset)
         public
         view
