@@ -242,6 +242,9 @@ contract DeployLRT is Script {
         setUpByAdmin();
         setUpByManager();
 
+        // update rsETHPrice
+        lrtOracleProxy.updateRSETHPrice();
+
         vm.stopBroadcast();
     }
 }
