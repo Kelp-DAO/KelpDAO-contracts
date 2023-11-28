@@ -16,5 +16,8 @@ library LRTConstants {
     bytes32 public constant EIGEN_STRATEGY_MANAGER = keccak256("EIGEN_STRATEGY_MANAGER");
 
     //Roles
+    bytes32 public constant DEFAULT_ADMIN_ROLE = 0x00;
     bytes32 public constant MANAGER = keccak256("MANAGER");
+    bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
+    bytes32 public constant BURNER_ROLE = keccak256("BURNER_ROLE");
 }

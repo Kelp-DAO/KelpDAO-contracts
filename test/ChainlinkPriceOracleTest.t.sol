@@ -8,8 +8,16 @@ import { ProxyAdmin } from "@openzeppelin/contracts/proxy/transparent/ProxyAdmin
 import { TransparentUpgradeableProxy } from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
 contract MockPriceAggregator {
-    function latestAnswer() external pure returns (uint256) {
-        return (1 ether + 5);
+    function decimals() external pure returns (uint8) {
+        return 18;
+    }
+
+    function latestRoundData()
+        external
+        pure
+        returns (uint80 roundId, int256 answer, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound)
+    {
+        return (0, int256(1 ether + 5), 0, 0, 0);
     }
 }
 

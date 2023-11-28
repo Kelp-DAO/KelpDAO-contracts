@@ -52,6 +52,9 @@ contract DeployLRT is Script {
     NodeDelegator public nodeDelegatorProxy5;
     address[] public nodeDelegatorContracts;
 
+    // TODO: check if this is the right amount
+    uint256 public minAmountToDeposit = 0.01 ether;
+
     function maxApproveToEigenStrategyManager(address nodeDel) private {
         (address stETH, address rETH, address cbETH) = getLSTs();
         NodeDelegator(nodeDel).maxApproveToEigenStrategyManager(stETH);
@@ -106,8 +109,8 @@ contract DeployLRT is Script {
 
         // grant MANAGER_ROLE to an address in LRTConfig
         lrtConfigProxy.grantRole(LRTConstants.MANAGER, proxyAdminOwner); // TODO: change it later to a multisig
-        // add minter role to lrtDepositPool so it mint rsETH
-        RSETHProxy.grantRole(RSETHProxy.MINTER_ROLE(), address(lrtDepositPoolProxy));
+        // add minter role to lrtDepositPool so it mints rsETH
+        lrtConfigProxy.grantRole(LRTConstants.MINTER_ROLE, address(lrtDepositPoolProxy));
 
         // add nodeDelegators to LRTDepositPool queue
         nodeDelegatorContracts.push(address(nodeDelegatorProxy1));
@@ -116,6 +119,9 @@ contract DeployLRT is Script {
         nodeDelegatorContracts.push(address(nodeDelegatorProxy4));
         nodeDelegatorContracts.push(address(nodeDelegatorProxy5));
         lrtDepositPoolProxy.addNodeDelegatorContractToQueue(nodeDelegatorContracts);
+
+        // add min amount to deposit in LRTDepositPool
+        lrtDepositPoolProxy.setMinAmountToDeposit(minAmountToDeposit);
     }
 
     function setUpByManager() private {

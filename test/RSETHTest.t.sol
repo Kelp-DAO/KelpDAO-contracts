@@ -45,7 +45,7 @@ contract RSETHInitialize is RSETHTest {
     function test_InitializeContractsVariables() external {
         rseth.initialize(address(admin), address(lrtConfig));
 
-        assertTrue(rseth.hasRole(rseth.DEFAULT_ADMIN_ROLE(), admin), "Admin address is not set");
+        assertTrue(lrtConfig.hasRole(LRTConstants.DEFAULT_ADMIN_ROLE, admin), "Admin address is not set");
         assertEq(address(lrtConfig), address(rseth.lrtConfig()), "LRT config address is not set");
 
         assertEq(rseth.name(), "rsETH", "Name is not set");
@@ -63,15 +63,18 @@ contract RSETHMint is RSETHTest {
 
         vm.startPrank(admin);
         lrtConfig.grantRole(LRTConstants.MANAGER, manager);
-        rseth.grantRole(rseth.MINTER_ROLE(), minter);
+        lrtConfig.grantRole(LRTConstants.MINTER_ROLE, minter);
         vm.stopPrank();
     }
 
     function test_RevertWhenCallerIsNotMinter() external {
         vm.startPrank(alice);
-        vm.expectRevert(
-            "AccessControl: account 0x328809bc894f92807417d2dad6b7c998c1afdac6 is missing role 0x9f2df0fed2c77648de5860a4cc508cd0818c85b8b8a1ab4ceeef8d981c8956a6"
-        );
+
+        string memory stringRole = string(abi.encodePacked(LRTConstants.MINTER_ROLE));
+        bytes memory revertData = abi.encodeWithSelector(ILRTConfig.CallerNotLRTConfigAllowedRole.selector, stringRole);
+
+        vm.expectRevert(revertData);
+
         rseth.mint(address(this), 100 ether);
         vm.stopPrank();
     }
@@ -90,7 +93,7 @@ contract RSETHMint is RSETHTest {
     function test_Mint() external {
         vm.startPrank(admin);
 
-        rseth.grantRole(rseth.MINTER_ROLE(), msg.sender);
+        lrtConfig.grantRole(LRTConstants.MINTER_ROLE, msg.sender);
 
         vm.stopPrank();
 
@@ -113,10 +116,10 @@ contract RSETHBurnFrom is RSETHTest {
 
         vm.startPrank(admin);
         lrtConfig.grantRole(LRTConstants.MANAGER, manager);
-        rseth.grantRole(rseth.BURNER_ROLE(), burner);
+        lrtConfig.grantRole(LRTConstants.BURNER_ROLE, burner);
 
         // give minter role to admin
-        rseth.grantRole(rseth.MINTER_ROLE(), admin);
+        lrtConfig.grantRole(LRTConstants.MINTER_ROLE, admin);
         rseth.mint(address(this), 100 ether);
 
         vm.stopPrank();
@@ -124,9 +127,12 @@ contract RSETHBurnFrom is RSETHTest {
 
     function test_RevertWhenCallerIsNotBurner() external {
         vm.startPrank(bob);
-        vm.expectRevert(
-            "AccessControl: account 0x1d96f2f6bef1202e4ce1ff6dad0c2cb002861d3e is missing role 0x3c11d16cbaffd01df69ce1c404f6340ee057498f5f00246190ea54220576a848"
-        );
+
+        string memory roleStr = string(abi.encodePacked(LRTConstants.BURNER_ROLE));
+        bytes memory revertData = abi.encodeWithSelector(ILRTConfig.CallerNotLRTConfigAllowedRole.selector, roleStr);
+
+        vm.expectRevert(revertData);
+
         rseth.burnFrom(address(this), 100 ether);
         vm.stopPrank();
     }
@@ -160,7 +166,9 @@ contract RSETHPause is RSETHTest {
 
     function test_RevertWhenCallerIsNotLRTManager() external {
         vm.startPrank(alice);
+
         vm.expectRevert(ILRTConfig.CallerNotLRTConfigManager.selector);
+
         rseth.pause();
         vm.stopPrank();
     }
@@ -198,9 +206,9 @@ contract RSETHUnpause is RSETHTest {
 
     function test_RevertWhenCallerIsNotLRTAdmin() external {
         vm.startPrank(alice);
-        vm.expectRevert(
-            "AccessControl: account 0x328809bc894f92807417d2dad6b7c998c1afdac6 is missing role 0x0000000000000000000000000000000000000000000000000000000000000000"
-        );
+
+        vm.expectRevert(ILRTConfig.CallerNotLRTConfigAdmin.selector);
+
         rseth.unpause();
         vm.stopPrank();
     }
@@ -233,9 +241,9 @@ contract RSETHUpdateLRTConfig is RSETHTest {
 
     function test_RevertWhenCallerIsNotLRTAdmin() external {
         vm.startPrank(alice);
-        vm.expectRevert(
-            "AccessControl: account 0x328809bc894f92807417d2dad6b7c998c1afdac6 is missing role 0x0000000000000000000000000000000000000000000000000000000000000000"
-        );
+
+        vm.expectRevert(ILRTConfig.CallerNotLRTConfigAdmin.selector);
+
         rseth.updateLRTConfig(address(lrtConfig));
         vm.stopPrank();
     }

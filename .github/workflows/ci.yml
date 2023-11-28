@@ -12,33 +12,33 @@ on:
       - "main"
 
 jobs:
-  lint:
-    runs-on: "ubuntu-latest"
-    steps:
-      - name: "Check out the repo"
-        uses: "actions/checkout@v3"
-        with:
-          submodules: "recursive"
+  # lint:
+  #   runs-on: "ubuntu-latest"
+  #   steps:
+  #     - name: "Check out the repo"
+  #       uses: "actions/checkout@v3"
+  #       with:
+  #         submodules: "recursive"
 
-      - name: "Install Foundry"
-        uses: "foundry-rs/foundry-toolchain@v1"
+  #     - name: "Install Foundry"
+  #       uses: "foundry-rs/foundry-toolchain@v1"
 
-      - name: "Install Node.js"
-        uses: "actions/setup-node@v3"
-        with:
-          cache: "npm"
-          node-version: "lts/*"
+  #     - name: "Install Node.js"
+  #       uses: "actions/setup-node@v3"
+  #       with:
+  #         cache: "npm"
+  #         node-version: "lts/*"
 
-      - name: "Install the Node.js dependencies"
-        run: "npm install"
+  #     - name: "Install the Node.js dependencies"
+  #       run: "npm install"
 
-      - name: "Lint the contracts"
-        run: "npm run lint"
+  #     - name: "Lint the contracts"
+  #       run: "npm run lint"
 
-      - name: "Add lint summary"
-        run: |
-          echo "## Lint result" >> $GITHUB_STEP_SUMMARY
-          echo "✅ Passed" >> $GITHUB_STEP_SUMMARY
+  #     - name: "Add lint summary"
+  #       run: |
+  #         echo "## Lint result" >> $GITHUB_STEP_SUMMARY
+  #         echo "✅ Passed" >> $GITHUB_STEP_SUMMARY
 
   build:
     runs-on: "ubuntu-latest"

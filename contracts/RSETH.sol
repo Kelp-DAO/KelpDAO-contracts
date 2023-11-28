@@ -2,25 +2,15 @@
 pragma solidity 0.8.21;
 
 import { UtilLib } from "./utils/UtilLib.sol";
-import { LRTConfigRoleChecker, ILRTConfig } from "./utils/LRTConfigRoleChecker.sol";
+import { LRTConfigRoleChecker, ILRTConfig, LRTConstants } from "./utils/LRTConfigRoleChecker.sol";
 
 import { ERC20Upgradeable, Initializable } from "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
-import { AccessControlUpgradeable } from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 
 /// @title rsETH token Contract
 /// @author Stader Labs
 /// @notice The ERC20 contract for the rsETH token
-contract RSETH is
-    Initializable,
-    LRTConfigRoleChecker,
-    ERC20Upgradeable,
-    PausableUpgradeable,
-    AccessControlUpgradeable
-{
-    bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
-    bytes32 public constant BURNER_ROLE = keccak256("BURNER_ROLE");
-
+contract RSETH is Initializable, LRTConfigRoleChecker, ERC20Upgradeable, PausableUpgradeable {
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
         _disableInitializers();
@@ -35,8 +25,6 @@ contract RSETH is
 
         __ERC20_init("rsETH", "rsETH");
         __Pausable_init();
-        __AccessControl_init();
-        _grantRole(DEFAULT_ADMIN_ROLE, admin);
         lrtConfig = ILRTConfig(lrtConfigAddr);
         emit UpdatedLRTConfig(lrtConfigAddr);
     }
@@ -44,14 +32,14 @@ contract RSETH is
     /// @notice Mints rsETH when called by an authorized caller
     /// @param to the account to mint to
     /// @param amount the amount of rsETH to mint
-    function mint(address to, uint256 amount) external onlyRole(MINTER_ROLE) whenNotPaused {
+    function mint(address to, uint256 amount) external onlyRole(LRTConstants.MINTER_ROLE) whenNotPaused {
         _mint(to, amount);
     }
 
     /// @notice Burns rsETH when called by an authorized caller
     /// @param account the account to burn from
     /// @param amount the amount of rsETH to burn
-    function burnFrom(address account, uint256 amount) external onlyRole(BURNER_ROLE) whenNotPaused {
+    function burnFrom(address account, uint256 amount) external onlyRole(LRTConstants.BURNER_ROLE) whenNotPaused {
         _burn(account, amount);
     }
 
@@ -63,14 +51,14 @@ contract RSETH is
 
     /// @notice Returns to normal state.
     /// @dev Only callable by the rsETH admin. Contract must be paused
-    function unpause() external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function unpause() external onlyLRTAdmin {
         _unpause();
     }
 
     /// @notice Updates the LRT config contract
     /// @dev only callable by the rsETH admin
     /// @param _lrtConfig the new LRT config contract
-    function updateLRTConfig(address _lrtConfig) external override onlyRole(DEFAULT_ADMIN_ROLE) {
+    function updateLRTConfig(address _lrtConfig) external override onlyLRTAdmin {
         UtilLib.checkNonZeroAddress(_lrtConfig);
         lrtConfig = ILRTConfig(_lrtConfig);
         emit UpdatedLRTConfig(_lrtConfig);

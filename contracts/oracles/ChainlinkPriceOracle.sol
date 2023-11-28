@@ -8,8 +8,13 @@ import { LRTConfigRoleChecker, ILRTConfig } from "../utils/LRTConfigRoleChecker.
 
 import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
-interface AggregatorInterface {
-    function latestAnswer() external view returns (uint256);
+interface AggregatorV3Interface {
+    function decimals() external view returns (uint8);
+
+    function latestRoundData()
+        external
+        view
+        returns (uint80 roundId, int256 answer, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound);
 }
 
 /// @title ChainlinkPriceOracle Contract
@@ -35,7 +40,11 @@ contract ChainlinkPriceOracle is IPriceFetcher, LRTConfigRoleChecker, Initializa
     /// @param asset the asset for which exchange rate is required
     /// @return assetPrice exchange rate of asset
     function getAssetPrice(address asset) external view onlySupportedAsset(asset) returns (uint256) {
-        return AggregatorInterface(assetPriceFeed[asset]).latestAnswer();
+        AggregatorV3Interface priceFeed = AggregatorV3Interface(assetPriceFeed[asset]);
+
+        (, int256 price,,,) = priceFeed.latestRoundData();
+
+        return uint256(price) * 1e18 / 10 ** uint256(priceFeed.decimals());
     }
 
     /// @dev add/update the price oracle of any supported asset

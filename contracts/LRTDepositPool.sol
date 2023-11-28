@@ -21,6 +21,8 @@ contract LRTDepositPool is ILRTDepositPool, LRTConfigRoleChecker, PausableUpgrad
 
     address[] public nodeDelegatorQueue;
 
+    uint256 public minAmountToDeposit;
+
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
         _disableInitializers();
@@ -116,9 +118,11 @@ contract LRTDepositPool is ILRTDepositPool, LRTConfigRoleChecker, PausableUpgrad
     /// @notice helps user stake LST to the protocol
     /// @param asset LST asset address to stake
     /// @param depositAmount LST asset amount to stake
+    /// @param minRSETHAmountToReceive Minimum amount of rseth to receive
     function depositAsset(
         address asset,
-        uint256 depositAmount
+        uint256 depositAmount,
+        uint256 minRSETHAmountToReceive
     )
         external
         whenNotPaused
@@ -126,9 +130,10 @@ contract LRTDepositPool is ILRTDepositPool, LRTConfigRoleChecker, PausableUpgrad
         onlySupportedAsset(asset)
     {
         // checks
-        if (depositAmount == 0) {
-            revert InvalidAmount();
+        if (depositAmount == 0 || depositAmount < minAmountToDeposit) {
+            revert InvalidAmountToDeposit();
         }
+
         if (depositAmount > getAssetCurrentLimit(asset)) {
             revert MaximumDepositLimitReached();
         }
@@ -139,6 +144,10 @@ contract LRTDepositPool is ILRTDepositPool, LRTConfigRoleChecker, PausableUpgrad
 
         // interactions
         uint256 rsethAmountMinted = _mintRsETH(asset, depositAmount);
+
+        if (rsethAmountMinted < minRSETHAmountToReceive) {
+            revert MinimumAmountToReceiveNotMet();
+        }
 
         emit AssetDeposit(asset, depositAmount, rsethAmountMinted);
     }
@@ -202,6 +211,14 @@ contract LRTDepositPool is ILRTDepositPool, LRTConfigRoleChecker, PausableUpgrad
     function updateMaxNodeDelegatorCount(uint256 maxNodeDelegatorCount_) external onlyLRTAdmin {
         maxNodeDelegatorCount = maxNodeDelegatorCount_;
         emit MaxNodeDelegatorCountUpdated(maxNodeDelegatorCount);
+    }
+
+    /// @notice update min amount to deposit
+    /// @dev only callable by LRT admin
+    /// @param minAmountToDeposit_ Minimum amount to deposit
+    function setMinAmountToDeposit(uint256 minAmountToDeposit_) external onlyLRTAdmin {
+        minAmountToDeposit = minAmountToDeposit_;
+        emit MinAmountToDepositUpdated(minAmountToDeposit_);
     }
 
     /// @dev Triggers stopped state. Contract must not be paused.

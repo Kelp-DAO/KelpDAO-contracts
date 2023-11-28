@@ -29,6 +29,8 @@ contract MockNodeDelegator {
 contract LRTDepositPoolTest is BaseTest, RSETHTest {
     LRTDepositPool public lrtDepositPool;
 
+    uint256 public minimunAmountOfRSETHToReceive;
+
     function setUp() public virtual override(RSETHTest, BaseTest) {
         super.setUp();
 
@@ -52,7 +54,7 @@ contract LRTDepositPoolTest is BaseTest, RSETHTest {
         lrtConfig.setContract(LRTConstants.LRT_ORACLE, address(new LRTOracleMock()));
 
         // add minter role for rseth to lrtDepositPool
-        rseth.grantRole(rseth.MINTER_ROLE(), address(lrtDepositPool));
+        lrtConfig.grantRole(LRTConstants.MINTER_ROLE, address(lrtDepositPool));
 
         vm.stopPrank();
     }
@@ -90,15 +92,24 @@ contract LRTDepositPoolDepositAsset is LRTDepositPoolTest {
     }
 
     function test_RevertWhenDepositAmountIsZero() external {
-        vm.expectRevert(ILRTDepositPool.InvalidAmount.selector);
-        lrtDepositPool.depositAsset(rETHAddress, 0);
+        vm.expectRevert(ILRTDepositPool.InvalidAmountToDeposit.selector);
+        lrtDepositPool.depositAsset(rETHAddress, 0, minimunAmountOfRSETHToReceive);
+    }
+
+    function test_RevertWhenDepositAmountIsLessThanMinAmountToDeposit() external {
+        vm.startPrank(admin);
+        lrtDepositPool.setMinAmountToDeposit(1 ether);
+        vm.stopPrank();
+
+        vm.expectRevert(ILRTDepositPool.InvalidAmountToDeposit.selector);
+        lrtDepositPool.depositAsset(rETHAddress, 0.5 ether, minimunAmountOfRSETHToReceive);
     }
 
     function test_RevertWhenAssetIsNotSupported() external {
         address randomAsset = makeAddr("randomAsset");
 
         vm.expectRevert(ILRTConfig.AssetNotSupported.selector);
-        lrtDepositPool.depositAsset(randomAsset, 1 ether);
+        lrtDepositPool.depositAsset(randomAsset, 1 ether, minimunAmountOfRSETHToReceive);
     }
 
     function test_RevertWhenDepositAmountExceedsLimit() external {
@@ -106,7 +117,21 @@ contract LRTDepositPoolDepositAsset is LRTDepositPoolTest {
         lrtConfig.updateAssetDepositLimit(rETHAddress, 1 ether);
 
         vm.expectRevert(ILRTDepositPool.MaximumDepositLimitReached.selector);
-        lrtDepositPool.depositAsset(rETHAddress, 2 ether);
+        lrtDepositPool.depositAsset(rETHAddress, 2 ether, minimunAmountOfRSETHToReceive);
+    }
+
+    function test_RevertWhenMinAmountToReceiveIsNotMet() external {
+        vm.startPrank(alice);
+
+        rETH.approve(address(lrtDepositPool), 2 ether);
+
+        // increase the minimum amount of rsETH to receive to an amount that is not met
+        minimunAmountOfRSETHToReceive = 100 ether;
+
+        vm.expectRevert(ILRTDepositPool.MinimumAmountToReceiveNotMet.selector);
+        lrtDepositPool.depositAsset(rETHAddress, 0.5 ether, minimunAmountOfRSETHToReceive);
+
+        vm.stopPrank();
     }
 
     function test_DepositAsset() external {
@@ -115,8 +140,10 @@ contract LRTDepositPoolDepositAsset is LRTDepositPoolTest {
         // alice balance of rsETH before deposit
         uint256 aliceBalanceBefore = rseth.balanceOf(address(alice));
 
+        minimunAmountOfRSETHToReceive = lrtDepositPool.getRsETHAmountToMint(rETHAddress, 2 ether);
+
         rETH.approve(address(lrtDepositPool), 2 ether);
-        lrtDepositPool.depositAsset(rETHAddress, 2 ether);
+        lrtDepositPool.depositAsset(rETHAddress, 2 ether, minimunAmountOfRSETHToReceive);
 
         // alice balance of rsETH after deposit
         uint256 aliceBalanceAfter = rseth.balanceOf(address(alice));
@@ -134,7 +161,7 @@ contract LRTDepositPoolDepositAsset is LRTDepositPoolTest {
 
         vm.startPrank(alice);
         stETH.approve(address(lrtDepositPool), amountDeposited);
-        lrtDepositPool.depositAsset(address(stETH), amountDeposited);
+        lrtDepositPool.depositAsset(address(stETH), amountDeposited, minimunAmountOfRSETHToReceive);
         vm.stopPrank();
 
         uint256 aliceBalanceAfter = rseth.balanceOf(address(alice));
@@ -210,7 +237,7 @@ contract LRTDepositPoolGetAssetCurrentLimit is LRTDepositPoolTest {
         // deposit 1 ether stETH
         vm.startPrank(alice);
         stETH.approve(address(lrtDepositPool), 6 ether);
-        lrtDepositPool.depositAsset(address(stETH), 6 ether);
+        lrtDepositPool.depositAsset(address(stETH), 6 ether, minimunAmountOfRSETHToReceive);
         vm.stopPrank();
 
         assertEq(lrtDepositPool.getAssetCurrentLimit(address(stETH)), 4 ether, "Asset current limit is not set");
@@ -272,7 +299,7 @@ contract LRTDepositPoolGetTotalAssetDeposits is LRTDepositPoolTest {
         // deposit rETH
         vm.startPrank(alice);
         rETH.approve(address(lrtDepositPool), amountToDeposit);
-        lrtDepositPool.depositAsset(address(rETH), amountToDeposit);
+        lrtDepositPool.depositAsset(address(rETH), amountToDeposit, minimunAmountOfRSETHToReceive);
         vm.stopPrank();
 
         assertEq(
@@ -317,7 +344,7 @@ contract LRTDepositPoolGetAssetDistributionData is LRTDepositPoolTest {
         // deposit 3 ether rETH
         vm.startPrank(alice);
         rETH.approve(address(lrtDepositPool), 3 ether);
-        lrtDepositPool.depositAsset(rETHAddress, 3 ether);
+        lrtDepositPool.depositAsset(rETHAddress, 3 ether, minimunAmountOfRSETHToReceive);
         vm.stopPrank();
 
         (uint256 assetLyingInDepositPool, uint256 assetLyingInNDCs, uint256 assetStakedInEigenLayer) =
@@ -449,7 +476,7 @@ contract LRTDepositPoolTransferAssetToNodeDelegator is LRTDepositPoolTest {
         // deposit 3 ether rETH
         vm.startPrank(alice);
         rETH.approve(address(lrtDepositPool), 3 ether);
-        lrtDepositPool.depositAsset(address(rETH), 3 ether);
+        lrtDepositPool.depositAsset(address(rETH), 3 ether, minimunAmountOfRSETHToReceive);
         vm.stopPrank();
 
         uint256 indexOfNodeDelegatorContractOneInNDArray;
@@ -494,6 +521,32 @@ contract LRTDepositPoolUpdateMaxNodeDelegatorCount is LRTDepositPoolTest {
         vm.stopPrank();
 
         assertEq(lrtDepositPool.maxNodeDelegatorCount(), 10, "Max node delegator count is not set");
+    }
+}
+
+contract LRTDepositPoolSetMinAmountToDeposit is LRTDepositPoolTest {
+    function setUp() public override {
+        super.setUp();
+
+        // initialize LRTDepositPool
+        lrtDepositPool.initialize(address(lrtConfig));
+    }
+
+    function test_RevertWhenNotCalledByLRTConfigAdmin() external {
+        vm.startPrank(alice);
+
+        vm.expectRevert(ILRTConfig.CallerNotLRTConfigAdmin.selector);
+        lrtDepositPool.setMinAmountToDeposit(1 ether);
+
+        vm.stopPrank();
+    }
+
+    function test_SetMinAmountToDeposit() external {
+        vm.startPrank(admin);
+        lrtDepositPool.setMinAmountToDeposit(1 ether);
+        vm.stopPrank();
+
+        assertEq(lrtDepositPool.minAmountToDeposit(), 1 ether, "Min amount to deposit is not set");
     }
 }
 

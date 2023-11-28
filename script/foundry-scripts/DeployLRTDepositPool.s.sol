@@ -30,13 +30,13 @@ contract DeployLRTDepositPool is Script {
     address[] public nodeDelegatorContracts;
 
     function setUpByAdmin() private {
-        // // add deposit pool to LRT config
+        // add deposit pool to LRT config
         lrtConfigProxy.setContract(LRTConstants.LRT_DEPOSIT_POOL, address(lrtDepositPoolProxy));
 
         // add minter role to lrtDepositPool so it mint rsETH
-        RSETHProxy.grantRole(RSETHProxy.MINTER_ROLE(), address(lrtDepositPoolProxy));
+        lrtConfigProxy.grantRole(LRTConstants.MINTER_ROLE, address(lrtDepositPoolProxy));
         address oldDepositPoolProxy = 0x55052ba1a135c43a17cf6CeE58a59c782CeF1Bcf;
-        RSETHProxy.revokeRole(RSETHProxy.MINTER_ROLE(), oldDepositPoolProxy);
+        lrtConfigProxy.revokeRole(LRTConstants.MINTER_ROLE, oldDepositPoolProxy);
 
         // add nodeDelegators to LRTDepositPool queue
         nodeDelegatorContracts.push(address(nodeDelegatorProxy1));

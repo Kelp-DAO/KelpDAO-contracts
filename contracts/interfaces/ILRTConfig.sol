@@ -8,6 +8,7 @@ interface ILRTConfig {
     error AssetNotSupported();
     error CallerNotLRTConfigAdmin();
     error CallerNotLRTConfigManager();
+    error CallerNotLRTConfigAllowedRole(string role);
 
     // Events
     event SetToken(bytes32 key, address tokenAddr);

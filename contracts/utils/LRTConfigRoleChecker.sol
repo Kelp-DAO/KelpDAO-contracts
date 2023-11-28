@@ -17,6 +17,14 @@ abstract contract LRTConfigRoleChecker {
     event UpdatedLRTConfig(address indexed lrtConfig);
 
     // modifiers
+    modifier onlyRole(bytes32 role) {
+        if (!IAccessControl(address(lrtConfig)).hasRole(role, msg.sender)) {
+            string memory roleStr = string(abi.encodePacked(role));
+            revert ILRTConfig.CallerNotLRTConfigAllowedRole(roleStr);
+        }
+        _;
+    }
+
     modifier onlyLRTManager() {
         if (!IAccessControl(address(lrtConfig)).hasRole(LRTConstants.MANAGER, msg.sender)) {
             revert ILRTConfig.CallerNotLRTConfigManager();
@@ -25,8 +33,7 @@ abstract contract LRTConfigRoleChecker {
     }
 
     modifier onlyLRTAdmin() {
-        bytes32 DEFAULT_ADMIN_ROLE = 0x00;
-        if (!IAccessControl(address(lrtConfig)).hasRole(DEFAULT_ADMIN_ROLE, msg.sender)) {
+        if (!IAccessControl(address(lrtConfig)).hasRole(LRTConstants.DEFAULT_ADMIN_ROLE, msg.sender)) {
             revert ILRTConfig.CallerNotLRTConfigAdmin();
         }
         _;

@@ -4,17 +4,19 @@ pragma solidity 0.8.21;
 interface ILRTDepositPool {
     //errors
     error TokenTransferFailed();
-    error InvalidAmount();
+    error InvalidAmountToDeposit();
     error NotEnoughAssetToTransfer();
     error MaximumDepositLimitReached();
     error MaximumNodeDelegatorCountReached();
+    error MinimumAmountToReceiveNotMet();
 
     //events
     event MaxNodeDelegatorCountUpdated(uint256 maxNodeDelegatorCount);
     event NodeDelegatorAddedinQueue(address prospectiveNodeDelegatorContract);
     event AssetDeposit(address asset, uint256 depositAmount, uint256 rsethMintAmount);
+    event MinAmountToDepositUpdated(uint256 minAmountToDeposit);
 
-    function depositAsset(address asset, uint256 depositAmount) external;
+    function depositAsset(address asset, uint256 depositAmount, uint256 minRSETHAmountToReceive) external;
 
     function getTotalAssetDeposits(address asset) external view returns (uint256);
 
