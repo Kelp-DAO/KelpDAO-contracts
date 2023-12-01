@@ -49,9 +49,6 @@ contract LRTConfig is ILRTConfig, AccessControlUpgradeable {
         initializer
     {
         UtilLib.checkNonZeroAddress(admin);
-        UtilLib.checkNonZeroAddress(stETH);
-        UtilLib.checkNonZeroAddress(rETH);
-        UtilLib.checkNonZeroAddress(cbETH);
         UtilLib.checkNonZeroAddress(rsETH_);
 
         __AccessControl_init();
