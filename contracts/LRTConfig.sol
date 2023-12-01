@@ -116,6 +116,7 @@ contract LRTConfig is ILRTConfig, AccessControlUpgradeable {
             revert ValueAlreadyInUse();
         }
         assetStrategy[asset] = strategy;
+        emit AssetStrategyUpdate(asset, strategy);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -141,6 +142,7 @@ contract LRTConfig is ILRTConfig, AccessControlUpgradeable {
     function setRSETH(address rsETH_) external onlyRole(DEFAULT_ADMIN_ROLE) {
         UtilLib.checkNonZeroAddress(rsETH_);
         rsETH = rsETH_;
+        emit SetRSETH(rsETH_);
     }
 
     function setToken(bytes32 tokenKey, address assetAddress) external onlyRole(DEFAULT_ADMIN_ROLE) {

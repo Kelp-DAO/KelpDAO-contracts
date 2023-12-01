@@ -11,11 +11,13 @@ interface ILRTConfig {
     error CallerNotLRTConfigAllowedRole(string role);
 
     // Events
-    event SetToken(bytes32 key, address tokenAddr);
-    event SetContract(bytes32 key, address contractAddr);
-    event AddedNewSupportedAsset(address asset, uint256 depositLimit);
-    event RemovedSupportedAsset(address asset);
-    event AssetDepositLimitUpdate(address asset, uint256 depositLimit);
+    event SetToken(bytes32 key, address indexed tokenAddr);
+    event SetContract(bytes32 key, address indexed contractAddr);
+    event AddedNewSupportedAsset(address indexed asset, uint256 depositLimit);
+    event RemovedSupportedAsset(address indexed asset);
+    event AssetDepositLimitUpdate(address indexed asset, uint256 depositLimit);
+    event AssetStrategyUpdate(address indexed asset, address indexed strategy);
+    event SetRSETH(address indexed rsETH);
 
     // methods
 
