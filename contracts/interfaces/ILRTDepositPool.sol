@@ -8,6 +8,7 @@ interface ILRTDepositPool {
     error NotEnoughAssetToTransfer();
     error MaximumDepositLimitReached();
     error MaximumNodeDelegatorCountReached();
+    error InvalidMaximumNodeDelegatorCount();
     error MinimumAmountToReceiveNotMet();
 
     //events

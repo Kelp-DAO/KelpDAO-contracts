@@ -209,6 +209,9 @@ contract LRTDepositPool is ILRTDepositPool, LRTConfigRoleChecker, PausableUpgrad
     /// @dev only callable by LRT admin
     /// @param maxNodeDelegatorCount_ Maximum count of node delegator
     function updateMaxNodeDelegatorCount(uint256 maxNodeDelegatorCount_) external onlyLRTAdmin {
+        if (maxNodeDelegatorCount_ > nodeDelegatorQueue.length) {
+            revert InvalidMaximumNodeDelegatorCount();
+        }
         maxNodeDelegatorCount = maxNodeDelegatorCount_;
         emit MaxNodeDelegatorCountUpdated(maxNodeDelegatorCount);
     }
