@@ -146,9 +146,6 @@ contract DeployLRT is Script {
         maxApproveToEigenStrategyManager(address(nodeDelegatorProxy3));
         maxApproveToEigenStrategyManager(address(nodeDelegatorProxy4));
         maxApproveToEigenStrategyManager(address(nodeDelegatorProxy5));
-
-        // check if depositLimit for each asset is correct.
-        lrtConfigProxy.updateAssetDepositLimit(cbETH, 0);
     }
 
     function run() external {

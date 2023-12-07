@@ -10,17 +10,17 @@
 coverage :; forge coverage --report lcov && lcov --remove lcov.info  -o lcov.info 'test/*' 'script/*'
 
 # deployment commands
-deploy-lrt-testnet :; forge script script/foundry-scripts/DeployLRT.s.sol:DeployLRT --rpc-url goerli  --private-key ${DEPLOYER_PRIVATE_KEY} --broadcast --verify -vvv
+deploy-lrt-testnet :; forge script script/foundry-scripts/DeployLRT.s.sol:DeployLRT --rpc-url goerli  --private-key ${DEPLOYER_PRIVATE_KEY} --broadcast --etherscan-api-key ${ETHERSCAN_API_KEY} --verify -vvv
 
 deploy-lrt-local-test :; forge script script/foundry-scripts/DeployLRT.s.sol:DeployLRT --rpc-url localhost --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80  --froms 0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266 --broadcast -vvv
 
 # deployment commands:LRTDepositPool
-deploy-lrt-depositPool-testnet :; forge script script/foundry-scripts/DeployLRTDepositPool.s.sol:DeployLRTDepositPool --rpc-url goerli  --private-key ${DEPLOYER_PRIVATE_KEY} --broadcast --verify -vvv
+deploy-lrt-depositPool-testnet :; forge script script/foundry-scripts/DeployLRTDepositPool.s.sol:DeployLRTDepositPool --rpc-url goerli  --private-key ${DEPLOYER_PRIVATE_KEY} --broadcast --etherscan-api-key ${ETHERSCAN_API_KEY} --verify -vvv
 
 deploy-lrt-depositPool-local-test :; forge script script/foundry-scripts/DeployLRTDepositPool.s.sol:DeployLRTDepositPool --rpc-url localhost --private-key 0x1cad05fbd3a79cef2336fd10a58b618c55fa548923b861ea83db9ae54597a4ed  --froms 0x7E9bb9673aC38071a7699e6A3C48b8fBDE574Cd0 --broadcast -vvv
 
 # upgrade commands
-upgrade-lrt-testnet :; forge script script/foundry-scripts/UpgradeLRT.s.sol:UpgradeLRT --rpc-url goerli  --private-key ${DEPLOYER_PRIVATE_KEY} --broadcast --verify -vvv
+upgrade-lrt-testnet :; forge script script/foundry-scripts/UpgradeLRT.s.sol:UpgradeLRT --rpc-url goerli  --private-key ${DEPLOYER_PRIVATE_KEY} --broadcast --etherscan-api-key ${ETHERSCAN_API_KEY} --verify -vvv
 
 upgrade-lrt-local-test :; forge script script/foundry-scripts/UpgradeLRT.s.sol:UpgradeLRT --rpc-url localhost --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80  --froms 0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266 --broadcast -vvv
 

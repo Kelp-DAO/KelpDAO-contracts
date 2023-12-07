@@ -39,17 +39,22 @@ contract LRTIntegrationTest is Test {
         string memory goerliRPC = vm.envString("PROVIDER_URL_TESTNET");
         goerliFork = vm.createSelectFork(goerliRPC);
 
-        lrtDepositPool = LRTDepositPool(0x1AFa0314010BcD6d28Fdda63D7695D7d2DaaB3d3);
-        lrtConfig = LRTConfig(0x90B1dF320af8Bcac033D8d8527A57EFC12cde10D);
-        rseth = RSETH(0xf1A97B476367114c8a9B4B5a00E3112C6Cd7bA23);
-        lrtOracle = LRTOracle(0xF79b3b6E0afab2Cbe2aa09A7d8eF5d11a172557c);
-        nodeDelegator1 = NodeDelegator(0xA2Bb150D3ddC6B3db45100C4768149f3a67618a5);
+        lrtDepositPool = LRTDepositPool(0x83a3FAd2576352D2B3DafaEc89edD53c2B2f7980);
+        lrtConfig = LRTConfig(0x1D473340C50f4a8b553D6FE3C128259f2d0FEE05);
+        rseth = RSETH(0xD59a2ee7b69DC4EE1D862f11257F363154769A5E);
+        lrtOracle = LRTOracle(0x539a6243F966284Aa99D489314cEB5baB707e138);
+        nodeDelegator1 = NodeDelegator(0x5834B3C2F2888c60FB94C5A365C842F61FFB9a77);
 
         (stETHAddress, rETHAddress, cbETHAddress) = getLSTs();
     }
 }
 
 contract LRTDepositPoolIntegrationTest is LRTIntegrationTest {
+    function test_LRTDepositPoolSetup() public {
+        assertEq(address(lrtConfig), address(lrtDepositPool.lrtConfig()));
+        assertEq(address(nodeDelegator1), address(lrtDepositPool.nodeDelegatorQueue(0)));
+    }
+
     function test_LRTDepositPoolIsAlreadyInitialized() public {
         // attempt to initialize LRTDepositPool again reverts
         vm.expectRevert("Initializable: contract is already initialized");
@@ -57,9 +62,7 @@ contract LRTDepositPoolIntegrationTest is LRTIntegrationTest {
     }
 
     function test_RevertWhenDepositAmountIsZeroForDepositAsset() external {
-        // Swicth to this when we deploy new contracts with the updated error message
-        // vm.expectRevert(ILRTDepositPool.InvalidAmountToDeposit.selector);
-        vm.expectRevert();
+        vm.expectRevert(ILRTDepositPool.InvalidAmountToDeposit.selector);
 
         lrtDepositPool.depositAsset(rETHAddress, 0, minAmountOfRSETHToReceive);
     }
@@ -336,6 +339,10 @@ contract LRTDepositPoolIntegrationTest is LRTIntegrationTest {
 
 contract LRTConfigIntegrationTest is LRTIntegrationTest {
     function test_LRTConfigSetup() public {
+        // priviledged roles
+        assertTrue(lrtConfig.hasRole(LRTConstants.DEFAULT_ADMIN_ROLE, admin));
+        assertTrue(lrtConfig.hasRole(LRTConstants.MANAGER, manager));
+
         // tokens
         assertEq(stETHAddress, lrtConfig.getLSTToken(LRTConstants.ST_ETH_TOKEN));
         assertEq(rETHAddress, lrtConfig.getLSTToken(LRTConstants.R_ETH_TOKEN));
@@ -354,6 +361,7 @@ contract LRTConfigIntegrationTest is LRTIntegrationTest {
         assertEq(vm.envAddress("RETH_STRATEGY"), lrtConfig.assetStrategy(rETHAddress));
         assertEq(vm.envAddress("CBETH_STRATEGY"), lrtConfig.assetStrategy(cbETHAddress));
 
+        assertEq(vm.envAddress("EIGEN_STRATEGY_MANAGER"), lrtConfig.getContract(LRTConstants.EIGEN_STRATEGY_MANAGER));
         assertEq(address(lrtDepositPool), lrtConfig.getContract(LRTConstants.LRT_DEPOSIT_POOL));
         assertEq(address(lrtOracle), lrtConfig.getContract(LRTConstants.LRT_ORACLE));
     }
@@ -547,7 +555,16 @@ contract LRTConfigIntegrationTest is LRTIntegrationTest {
 
 contract LRTOracleIntegrationTest is LRTIntegrationTest {
     function test_LRTOracleSetup() public {
-        address chainlinkOracle = 0x61f0Cf0cf9b8F2084B387C453C4805efcC4e523f;
+        assertLt(lrtOracle.getAssetPrice(rETHAddress), 1.2 ether);
+        assertGt(lrtOracle.getAssetPrice(rETHAddress) + 1, 1 ether);
+
+        assertLt(lrtOracle.getAssetPrice(cbETHAddress), 1.2 ether);
+        assertGt(lrtOracle.getAssetPrice(cbETHAddress) + 1, 1 ether);
+
+        assertLt(lrtOracle.getAssetPrice(stETHAddress), 1.2 ether);
+        assertGt(lrtOracle.getAssetPrice(stETHAddress), 0.9 ether);
+
+        address chainlinkOracle = 0xC2fD5D2b0e90D8a4695cfF313bAEcc457BB0a82A;
         assertEq(lrtOracle.assetPriceOracle(stETHAddress), chainlinkOracle);
         assertEq(lrtOracle.assetPriceOracle(rETHAddress), chainlinkOracle);
         assertEq(lrtOracle.assetPriceOracle(cbETHAddress), chainlinkOracle);
@@ -578,6 +595,14 @@ contract LRTOracleIntegrationTest is LRTIntegrationTest {
 }
 
 contract RSETHIntegrationTest is LRTIntegrationTest {
+    function test_RSETHSetup() public {
+        // check if lrtDepositPool has MINTER role
+        assertTrue(lrtConfig.hasRole(LRTConstants.MINTER_ROLE, address(lrtDepositPool)));
+
+        // check if lrtConfig is set in rsETH
+        assertEq(address(rseth.lrtConfig()), address(lrtConfig));
+    }
+
     function test_RSETHIsAlreadyInitialized() public {
         // attempt to initialize RSETH again reverts
         vm.expectRevert("Initializable: contract is already initialized");
@@ -621,9 +646,7 @@ contract RSETHIntegrationTest is LRTIntegrationTest {
     }
 
     function test_RevertWhenCallingUpdateLRTConfigAndCallerIsNotLRTAdmin() external {
-        vm.expectRevert(
-            "AccessControl: account 0x7fa9385be102ac3eac297483dd6233d62b3e1496 is missing role 0x0000000000000000000000000000000000000000000000000000000000000000"
-        );
+        vm.expectRevert(ILRTConfig.CallerNotLRTConfigAdmin.selector);
         rseth.updateLRTConfig(address(lrtConfig));
     }
 

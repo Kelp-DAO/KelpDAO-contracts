@@ -90,6 +90,7 @@ jobs:
           export STETH_STRATEGY=${{ secrets.STETH_STRATEGY }}
           export RETH_STRATEGY=${{ secrets.RETH_STRATEGY }}
           export CBETH_STRATEGY=${{ secrets.CBETH_STRATEGY }}
+          export EIGEN_STRATEGY_MANAGER=${{ secrets.EIGEN_STRATEGY_MANAGER }}
           forge test --fork-url ${{ secrets.PROVIDER_URL_TESTNET }} --match-contract "IntegrationTest"
 
       - name: "Add test summary"

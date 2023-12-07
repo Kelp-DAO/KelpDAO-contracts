@@ -37,7 +37,7 @@ contract LRTConfig is ILRTConfig, AccessControlUpgradeable {
     /// @param stETH stETH address
     /// @param rETH rETH address
     /// @param cbETH cbETH address
-    /// @param rsETH_ cbETH address
+    /// @param rsETH_ rsETH address
     function initialize(
         address admin,
         address stETH,
