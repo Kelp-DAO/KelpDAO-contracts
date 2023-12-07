@@ -1,10 +1,10 @@
 import "dotenv/config";
 import { HardhatUserConfig } from "hardhat/config";
-import '@typechain/hardhat'
+import "@typechain/hardhat";
 import "@nomicfoundation/hardhat-verify";
 import "@openzeppelin/hardhat-upgrades";
 import "@nomicfoundation/hardhat-toolbox";
-import "@nomicfoundation/hardhat-ethers"
+import "@nomicfoundation/hardhat-ethers";
 import "@nomicfoundation/hardhat-foundry";
 
 const config: HardhatUserConfig = {

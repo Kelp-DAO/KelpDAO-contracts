@@ -17,7 +17,7 @@ import { ReentrancyGuardUpgradeable } from "@openzeppelin/contracts-upgradeable/
 /// @title LRTDepositPool - Deposit Pool Contract for LSTs
 /// @notice Handles LST asset deposits
 contract LRTDepositPool is ILRTDepositPool, LRTConfigRoleChecker, PausableUpgradeable, ReentrancyGuardUpgradeable {
-    uint256 public maxNodeDelegatorCount;
+    uint256 public maxNodeDelegatorLimit;
 
     address[] public nodeDelegatorQueue;
 
@@ -34,7 +34,7 @@ contract LRTDepositPool is ILRTDepositPool, LRTConfigRoleChecker, PausableUpgrad
         UtilLib.checkNonZeroAddress(lrtConfigAddr);
         __Pausable_init();
         __ReentrancyGuard_init();
-        maxNodeDelegatorCount = 10;
+        maxNodeDelegatorLimit = 10;
         lrtConfig = ILRTConfig(lrtConfigAddr);
         emit UpdatedLRTConfig(lrtConfigAddr);
     }
@@ -170,8 +170,8 @@ contract LRTDepositPool is ILRTDepositPool, LRTConfigRoleChecker, PausableUpgrad
     /// @param nodeDelegatorContracts Array of NodeDelegator contract addresses
     function addNodeDelegatorContractToQueue(address[] calldata nodeDelegatorContracts) external onlyLRTAdmin {
         uint256 length = nodeDelegatorContracts.length;
-        if (nodeDelegatorQueue.length + length > maxNodeDelegatorCount) {
-            revert MaximumNodeDelegatorCountReached();
+        if (nodeDelegatorQueue.length + length > maxNodeDelegatorLimit) {
+            revert MaximumNodeDelegatorLimitReached();
         }
 
         for (uint256 i; i < length;) {
@@ -207,13 +207,14 @@ contract LRTDepositPool is ILRTDepositPool, LRTConfigRoleChecker, PausableUpgrad
 
     /// @notice update max node delegator count
     /// @dev only callable by LRT admin
-    /// @param maxNodeDelegatorCount_ Maximum count of node delegator
-    function updateMaxNodeDelegatorCount(uint256 maxNodeDelegatorCount_) external onlyLRTAdmin {
-        if (maxNodeDelegatorCount_ > nodeDelegatorQueue.length) {
-            revert InvalidMaximumNodeDelegatorCount();
+    /// @param maxNodeDelegatorLimit_ Maximum count of node delegator
+    function updateMaxNodeDelegatorLimit(uint256 maxNodeDelegatorLimit_) external onlyLRTAdmin {
+        if (maxNodeDelegatorLimit_ < nodeDelegatorQueue.length) {
+            revert InvalidMaximumNodeDelegatorLimit();
         }
-        maxNodeDelegatorCount = maxNodeDelegatorCount_;
-        emit MaxNodeDelegatorCountUpdated(maxNodeDelegatorCount);
+
+        maxNodeDelegatorLimit = maxNodeDelegatorLimit_;
+        emit MaxNodeDelegatorLimitUpdated(maxNodeDelegatorLimit);
     }
 
     /// @notice update min amount to deposit

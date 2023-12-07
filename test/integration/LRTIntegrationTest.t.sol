@@ -297,18 +297,18 @@ contract LRTDepositPoolIntegrationTest is LRTIntegrationTest {
         );
     }
 
-    function test_RevertUpdateMaxNodeDelegatorCountWhenNotCalledByLRTConfigAdmin() external {
+    function test_RevertUpdateMaxNodeDelegatorLimitWhenNotCalledByLRTConfigAdmin() external {
         vm.prank(stWhale);
         vm.expectRevert(ILRTConfig.CallerNotLRTConfigAdmin.selector);
-        lrtDepositPool.updateMaxNodeDelegatorCount(10);
+        lrtDepositPool.updateMaxNodeDelegatorLimit(10);
     }
 
-    function test_UpdateMaxNodeDelegatorCountWhenCalledByAdmin() external {
+    function test_UpdateMaxNodeDelegatorLimitWhenCalledByAdmin() external {
         vm.startPrank(admin);
-        lrtDepositPool.updateMaxNodeDelegatorCount(100);
+        lrtDepositPool.updateMaxNodeDelegatorLimit(100);
         vm.stopPrank();
 
-        assertEq(lrtDepositPool.maxNodeDelegatorCount(), 100, "Max node delegator count is not set");
+        assertEq(lrtDepositPool.maxNodeDelegatorLimit(), 100, "Max node delegator count is not set");
     }
 
     function test_RevertPauseWhenNotCalledByLRTConfigManager() external {

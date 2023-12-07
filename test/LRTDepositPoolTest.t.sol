@@ -37,11 +37,8 @@ contract LRTDepositPoolTest is BaseTest, RSETHTest {
         // deploy LRTDepositPool
         ProxyAdmin proxyAdmin = new ProxyAdmin();
         LRTDepositPool contractImpl = new LRTDepositPool();
-        TransparentUpgradeableProxy contractProxy = new TransparentUpgradeableProxy(
-            address(contractImpl),
-            address(proxyAdmin),
-            ""
-        );
+        TransparentUpgradeableProxy contractProxy =
+            new TransparentUpgradeableProxy(address(contractImpl), address(proxyAdmin), "");
 
         lrtDepositPool = LRTDepositPool(address(contractProxy));
 
@@ -69,7 +66,7 @@ contract LRTDepositPoolInitialize is LRTDepositPoolTest {
     function test_InitializeContractsVariables() external {
         lrtDepositPool.initialize(address(lrtConfig));
 
-        assertEq(lrtDepositPool.maxNodeDelegatorCount(), 10, "Max node delegator count is not set");
+        assertEq(lrtDepositPool.maxNodeDelegatorLimit(), 10, "Max node delegator count is not set");
         assertEq(address(lrtConfig), address(lrtDepositPool.lrtConfig()), "LRT config address is not set");
     }
 }
@@ -387,10 +384,10 @@ contract LRTDepositPoolAddNodeDelegatorContractToQueue is LRTDepositPoolTest {
         vm.stopPrank();
     }
 
-    function test_RevertWhenNodeDelegatorCountExceedsLimit() external {
+    function test_RevertWhenNodeDelegatorLimitExceedsLimit() external {
         vm.startPrank(admin);
 
-        uint256 maxDelegatorCount = lrtDepositPool.maxNodeDelegatorCount();
+        uint256 maxDelegatorCount = lrtDepositPool.maxNodeDelegatorLimit();
 
         for (uint256 i = 0; i < maxDelegatorCount; i++) {
             address madeUpNodeDelegatorAddress = makeAddr(string(abi.encodePacked("nodeDelegatorContract", i)));
@@ -402,7 +399,7 @@ contract LRTDepositPoolAddNodeDelegatorContractToQueue is LRTDepositPoolTest {
         }
 
         // add one more node delegator contract to go above limit
-        vm.expectRevert(ILRTDepositPool.MaximumNodeDelegatorCountReached.selector);
+        vm.expectRevert(ILRTDepositPool.MaximumNodeDelegatorLimitReached.selector);
         lrtDepositPool.addNodeDelegatorContractToQueue(nodeDelegatorQueueProspectives);
 
         vm.stopPrank();
@@ -498,7 +495,7 @@ contract LRTDepositPoolTransferAssetToNodeDelegator is LRTDepositPoolTest {
     }
 }
 
-contract LRTDepositPoolUpdateMaxNodeDelegatorCount is LRTDepositPoolTest {
+contract LRTDepositPoolUpdateMaxNodeDelegatorLimit is LRTDepositPoolTest {
     function setUp() public override {
         super.setUp();
 
@@ -510,17 +507,17 @@ contract LRTDepositPoolUpdateMaxNodeDelegatorCount is LRTDepositPoolTest {
         vm.startPrank(alice);
 
         vm.expectRevert(ILRTConfig.CallerNotLRTConfigAdmin.selector);
-        lrtDepositPool.updateMaxNodeDelegatorCount(10);
+        lrtDepositPool.updateMaxNodeDelegatorLimit(10);
 
         vm.stopPrank();
     }
 
-    function test_UpdateMaxNodeDelegatorCount() external {
+    function test_UpdateMaxNodeDelegatorLimit() external {
         vm.startPrank(admin);
-        lrtDepositPool.updateMaxNodeDelegatorCount(10);
+        lrtDepositPool.updateMaxNodeDelegatorLimit(10);
         vm.stopPrank();
 
-        assertEq(lrtDepositPool.maxNodeDelegatorCount(), 10, "Max node delegator count is not set");
+        assertEq(lrtDepositPool.maxNodeDelegatorLimit(), 10, "Max node delegator count is not set");
     }
 }
 

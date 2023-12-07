@@ -21,11 +21,8 @@ contract RSETHTest is BaseTest, LRTConfigTest {
 
         ProxyAdmin proxyAdmin = new ProxyAdmin();
         RSETH tokenImpl = new RSETH();
-        TransparentUpgradeableProxy tokenProxy = new TransparentUpgradeableProxy(
-            address(tokenImpl),
-            address(proxyAdmin),
-            ""
-        );
+        TransparentUpgradeableProxy tokenProxy =
+            new TransparentUpgradeableProxy(address(tokenImpl), address(proxyAdmin), "");
 
         rseth = RSETH(address(tokenProxy));
     }

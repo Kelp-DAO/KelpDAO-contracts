@@ -38,11 +38,8 @@ contract ChainlinkPriceOracleTest is LRTConfigTest {
 
         ProxyAdmin proxyAdmin = new ProxyAdmin();
         ChainlinkPriceOracle priceOracleImpl = new ChainlinkPriceOracle();
-        TransparentUpgradeableProxy priceOracleProxy = new TransparentUpgradeableProxy(
-            address(priceOracleImpl),
-            address(proxyAdmin),
-            ""
-        );
+        TransparentUpgradeableProxy priceOracleProxy =
+            new TransparentUpgradeableProxy(address(priceOracleImpl), address(proxyAdmin), "");
 
         priceOracle = ChainlinkPriceOracle(address(priceOracleProxy));
     }

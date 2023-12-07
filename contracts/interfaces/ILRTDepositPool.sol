@@ -7,12 +7,12 @@ interface ILRTDepositPool {
     error InvalidAmountToDeposit();
     error NotEnoughAssetToTransfer();
     error MaximumDepositLimitReached();
-    error MaximumNodeDelegatorCountReached();
-    error InvalidMaximumNodeDelegatorCount();
+    error MaximumNodeDelegatorLimitReached();
+    error InvalidMaximumNodeDelegatorLimit();
     error MinimumAmountToReceiveNotMet();
 
     //events
-    event MaxNodeDelegatorCountUpdated(uint256 maxNodeDelegatorCount);
+    event MaxNodeDelegatorLimitUpdated(uint256 maxNodeDelegatorLimit);
     event NodeDelegatorAddedinQueue(address indexed prospectiveNodeDelegatorContract);
     event AssetDeposit(address indexed asset, uint256 depositAmount, uint256 rsethMintAmount);
     event MinAmountToDepositUpdated(uint256 minAmountToDeposit);
@@ -29,7 +29,7 @@ interface ILRTDepositPool {
 
     function transferAssetToNodeDelegator(uint256 ndcIndex, address asset, uint256 amount) external;
 
-    function updateMaxNodeDelegatorCount(uint256 maxNodeDelegatorCount) external;
+    function updateMaxNodeDelegatorLimit(uint256 maxNodeDelegatorLimit) external;
 
     function getNodeDelegatorQueue() external view returns (address[] memory);
 

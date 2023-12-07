@@ -13,7 +13,8 @@ contract ProxyFactory {
     /// @param salt the salt to use for the proxy
     /// @return the address of the created proxy
     function create(address implementation, address proxyAdmin, bytes32 salt) external returns (address) {
-        TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy{salt: salt}(implementation, proxyAdmin, "");
+        TransparentUpgradeableProxy proxy =
+            new TransparentUpgradeableProxy{ salt: salt }(implementation, proxyAdmin, "");
         return address(proxy);
     }
 

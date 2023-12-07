@@ -12,8 +12,8 @@ import { ProxyAdmin } from "@openzeppelin/contracts/proxy/transparent/ProxyAdmin
 contract LRTConfigTest is BaseTest {
     LRTConfig public lrtConfig;
 
-    event AssetDepositLimitUpdate(address asset, uint256 depositLimit);
-    event RemovedSupportedAsset(address asset);
+    event AssetDepositLimitUpdate(address indexed asset, uint256 depositLimit);
+    event RemovedSupportedAsset(address indexed asset);
 
     address public manager;
     address public rsethMock;
@@ -26,11 +26,8 @@ contract LRTConfigTest is BaseTest {
 
         ProxyAdmin proxyAdmin = new ProxyAdmin();
         LRTConfig lrtConfigImpl = new LRTConfig();
-        TransparentUpgradeableProxy lrtConfigProxy = new TransparentUpgradeableProxy(
-            address(lrtConfigImpl),
-            address(proxyAdmin),
-            ""
-        );
+        TransparentUpgradeableProxy lrtConfigProxy =
+            new TransparentUpgradeableProxy(address(lrtConfigImpl), address(proxyAdmin), "");
 
         lrtConfig = LRTConfig(address(lrtConfigProxy));
     }

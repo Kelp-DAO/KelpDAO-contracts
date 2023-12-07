@@ -55,11 +55,8 @@ contract LRTOracleTest is LRTConfigTest {
 
         ProxyAdmin proxyAdmin = new ProxyAdmin();
         LRTOracle lrtOracleImpl = new LRTOracle();
-        TransparentUpgradeableProxy lrtOracleProxy = new TransparentUpgradeableProxy(
-            address(lrtOracleImpl),
-            address(proxyAdmin),
-            ""
-        );
+        TransparentUpgradeableProxy lrtOracleProxy =
+            new TransparentUpgradeableProxy(address(lrtOracleImpl), address(proxyAdmin), "");
 
         lrtOracle = LRTOracle(address(lrtOracleProxy));
     }
