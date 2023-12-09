@@ -34,6 +34,7 @@ contract LRTIntegrationTest is Test {
     address public rETHWhale = 0x879944A8cB437a5f8061361f82A6d4EED59070b5;
 
     uint256 public minAmountOfRSETHToReceive;
+    string public referralId = "0";
 
     function setUp() public virtual {
         string memory goerliRPC = vm.envString("PROVIDER_URL_TESTNET");
@@ -64,14 +65,14 @@ contract LRTDepositPoolIntegrationTest is LRTIntegrationTest {
     function test_RevertWhenDepositAmountIsZeroForDepositAsset() external {
         vm.expectRevert(ILRTDepositPool.InvalidAmountToDeposit.selector);
 
-        lrtDepositPool.depositAsset(rETHAddress, 0, minAmountOfRSETHToReceive);
+        lrtDepositPool.depositAsset(rETHAddress, 0, minAmountOfRSETHToReceive, referralId);
     }
 
     function test_RevertWhenAssetIsNotSupportedForDepositAsset() external {
         address randomAsset = makeAddr("randomAsset");
 
         vm.expectRevert(ILRTConfig.AssetNotSupported.selector);
-        lrtDepositPool.depositAsset(randomAsset, 1 ether, minAmountOfRSETHToReceive);
+        lrtDepositPool.depositAsset(randomAsset, 1 ether, minAmountOfRSETHToReceive, referralId);
     }
 
     function test_DepositAssetSTETHWorksWhenUsingTheCorrectConditions() external {
@@ -87,7 +88,7 @@ contract LRTDepositPoolIntegrationTest is LRTIntegrationTest {
         uint256 whaleStETHBalBefore = ERC20(stETHAddress).balanceOf(address(stWhale));
         vm.startPrank(stWhale);
         ERC20(stETHAddress).approve(address(lrtDepositPool), amountToDeposit);
-        lrtDepositPool.depositAsset(stETHAddress, amountToDeposit, minAmountOfRSETHToReceive);
+        lrtDepositPool.depositAsset(stETHAddress, amountToDeposit, minAmountOfRSETHToReceive, referralId);
         vm.stopPrank();
         uint256 whaleStETHBalAfter = ERC20(stETHAddress).balanceOf(address(stWhale));
 
@@ -124,7 +125,7 @@ contract LRTDepositPoolIntegrationTest is LRTIntegrationTest {
         uint256 whalerETHBalBefore = ERC20(rETHAddress).balanceOf(address(rETHWhale));
         vm.startPrank(rETHWhale);
         ERC20(rETHAddress).approve(address(lrtDepositPool), amountToDeposit);
-        lrtDepositPool.depositAsset(rETHAddress, amountToDeposit, minAmountOfRSETHToReceive);
+        lrtDepositPool.depositAsset(rETHAddress, amountToDeposit, minAmountOfRSETHToReceive, referralId);
         vm.stopPrank();
         uint256 whalerETHBalAfter = ERC20(rETHAddress).balanceOf(address(rETHWhale));
 
@@ -153,7 +154,7 @@ contract LRTDepositPoolIntegrationTest is LRTIntegrationTest {
 
         vm.startPrank(stWhale);
         ERC20(stETHAddress).approve(address(lrtDepositPool), depositAmount);
-        lrtDepositPool.depositAsset(stETHAddress, depositAmount, minAmountOfRSETHToReceive);
+        lrtDepositPool.depositAsset(stETHAddress, depositAmount, minAmountOfRSETHToReceive, referralId);
         vm.stopPrank();
 
         uint256 stETHDepositLimitAfter = lrtDepositPool.getAssetCurrentLimit(stETHAddress);
@@ -198,7 +199,7 @@ contract LRTDepositPoolIntegrationTest is LRTIntegrationTest {
 
         vm.startPrank(stWhale);
         ERC20(stETHAddress).approve(address(lrtDepositPool), amountToTransfer);
-        lrtDepositPool.depositAsset(stETHAddress, amountToTransfer, minAmountOfRSETHToReceive);
+        lrtDepositPool.depositAsset(stETHAddress, amountToTransfer, minAmountOfRSETHToReceive, referralId);
         vm.stopPrank();
 
         assertApproxEqAbs(
@@ -255,7 +256,7 @@ contract LRTDepositPoolIntegrationTest is LRTIntegrationTest {
 
         vm.startPrank(stWhale);
         ERC20(rETHAddress).approve(address(lrtDepositPool), amountToTransfer);
-        lrtDepositPool.depositAsset(rETHAddress, amountToTransfer, minAmountOfRSETHToReceive);
+        lrtDepositPool.depositAsset(rETHAddress, amountToTransfer, minAmountOfRSETHToReceive, referralId);
         vm.stopPrank();
 
         assertEq(
@@ -678,7 +679,7 @@ contract NodeDelegatorIntegrationTest is LRTIntegrationTest {
 
         vm.startPrank(stWhale);
         ERC20(stETHAddress).approve(address(lrtDepositPool), amountToTransfer);
-        lrtDepositPool.depositAsset(stETHAddress, amountToTransfer, minAmountOfRSETHToReceive);
+        lrtDepositPool.depositAsset(stETHAddress, amountToTransfer, minAmountOfRSETHToReceive, referralId);
         vm.stopPrank();
 
         uint256 indexOfNodeDelegator = 0;

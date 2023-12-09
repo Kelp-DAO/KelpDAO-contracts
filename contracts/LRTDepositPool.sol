@@ -18,10 +18,10 @@ import { ReentrancyGuardUpgradeable } from "@openzeppelin/contracts-upgradeable/
 /// @notice Handles LST asset deposits
 contract LRTDepositPool is ILRTDepositPool, LRTConfigRoleChecker, PausableUpgradeable, ReentrancyGuardUpgradeable {
     uint256 public maxNodeDelegatorLimit;
-
-    address[] public nodeDelegatorQueue;
-
     uint256 public minAmountToDeposit;
+
+    mapping(address => uint256) public isNodeDelegator; // 0: not a node delegator, 1: is a node delegator
+    address[] public nodeDelegatorQueue;
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
@@ -77,7 +77,6 @@ contract LRTDepositPool is ILRTDepositPool, LRTConfigRoleChecker, PausableUpgrad
         onlySupportedAsset(asset)
         returns (uint256 assetLyingInDepositPool, uint256 assetLyingInNDCs, uint256 assetStakedInEigenLayer)
     {
-        // Question: is here the right place to have this? Could it be in LRTConfig?
         assetLyingInDepositPool = IERC20(asset).balanceOf(address(this));
 
         uint256 ndcsCount = nodeDelegatorQueue.length;
@@ -122,7 +121,8 @@ contract LRTDepositPool is ILRTDepositPool, LRTConfigRoleChecker, PausableUpgrad
     function depositAsset(
         address asset,
         uint256 depositAmount,
-        uint256 minRSETHAmountToReceive
+        uint256 minRSETHAmountToReceive,
+        string calldata referralId
     )
         external
         whenNotPaused
@@ -149,7 +149,7 @@ contract LRTDepositPool is ILRTDepositPool, LRTConfigRoleChecker, PausableUpgrad
             revert MinimumAmountToReceiveNotMet();
         }
 
-        emit AssetDeposit(asset, depositAmount, rsethAmountMinted);
+        emit AssetDeposit(msg.sender, asset, depositAmount, rsethAmountMinted, referralId);
     }
 
     /// @dev private function to mint rseth. It calculates rseth amount to mint based on asset amount and asset exchange
@@ -176,12 +176,20 @@ contract LRTDepositPool is ILRTDepositPool, LRTConfigRoleChecker, PausableUpgrad
 
         for (uint256 i; i < length;) {
             UtilLib.checkNonZeroAddress(nodeDelegatorContracts[i]);
-            nodeDelegatorQueue.push(nodeDelegatorContracts[i]);
-            emit NodeDelegatorAddedinQueue(nodeDelegatorContracts[i]);
+
+            // check if node delegator contract is already added and add it if not
+            if (isNodeDelegator[nodeDelegatorContracts[i]] == 0) {
+                nodeDelegatorQueue.push(nodeDelegatorContracts[i]);
+            }
+
+            isNodeDelegator[nodeDelegatorContracts[i]] = 1;
+
             unchecked {
                 ++i;
             }
         }
+
+        emit NodeDelegatorAddedinQueue(nodeDelegatorContracts);
     }
 
     /// @notice transfers asset lying in this DepositPool to node delegator contract
