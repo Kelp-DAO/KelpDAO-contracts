@@ -17,9 +17,16 @@ interface AggregatorV3Interface {
         returns (uint80 roundId, int256 answer, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound);
 }
 
+interface IAssetPriceFeed {
+    // events
+    event AssetPriceFeedUpdate(address indexed asset, address indexed priceFeed);
+
+    function assetPriceFeed(address asset) external view returns (address);
+}
+
 /// @title ChainlinkPriceOracle Contract
 /// @notice contract that fetches the exchange rate of assets from chainlink price feeds
-contract ChainlinkPriceOracle is IPriceFetcher, LRTConfigRoleChecker, Initializable {
+contract ChainlinkPriceOracle is IPriceFetcher, IAssetPriceFeed, LRTConfigRoleChecker, Initializable {
     mapping(address asset => address priceFeed) public override assetPriceFeed;
 
     /// @custom:oz-upgrades-unsafe-allow constructor
