@@ -9,6 +9,8 @@ library LRTConstants {
     bytes32 public constant ST_ETH_TOKEN = keccak256("ST_ETH_TOKEN");
     //cbETH token
     bytes32 public constant CB_ETH_TOKEN = keccak256("CB_ETH_TOKEN");
+    //ETHX token
+    bytes32 public constant ETHX_TOKEN = keccak256("ETHX_TOKEN");
 
     //contracts
     bytes32 public constant LRT_ORACLE = keccak256("LRT_ORACLE");

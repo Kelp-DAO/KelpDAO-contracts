@@ -23,15 +23,20 @@ contract LRTIntegrationTest is Test {
     LRTOracle public lrtOracle;
     NodeDelegator public nodeDelegator1;
 
-    address public admin = 0x7E9bb9673aC38071a7699e6A3C48b8fBDE574Cd0;
-    address public manager = 0x7E9bb9673aC38071a7699e6A3C48b8fBDE574Cd0;
+    address public admin = 0x64c6fBb54546d7014b5f89f0db4b40D58c20b1A4;
+    address public manager = 0x64c6fBb54546d7014b5f89f0db4b40D58c20b1A4;
 
     address public stETHAddress;
-    address public rETHAddress;
-    address public cbETHAddress;
+    address public ethXAddress;
 
     address public stWhale = 0xD5d883B90030311530620E0ABEe93189c8aAe032;
-    address public rETHWhale = 0x879944A8cB437a5f8061361f82A6d4EED59070b5;
+    address public ethXWhale = 0xF6349eEe20aEcD62C9891159fB714a1b5adE93Cd;
+
+    address public chainlinkOracle = 0x33124283F0c9eef83A5bcd4bb22C23f05ABc7D1A;
+    address public ethxPriceOracle = 0x4978F66c51ADd2de0d49ce8Ec0e525E4f6B1Bef7;
+
+    address public GOERLI_EIGEN_STRATEGY_MANAGER = 0x779d1b5315df083e3F9E94cB495983500bA8E907;
+    address public GOERLI_EIGEN_STETH_STRATEGY = 0xB613E78E2068d7489bb66419fB1cfa11275d14da;
 
     uint256 public minAmountOfRSETHToReceive;
     string public referralId = "0";
@@ -40,13 +45,13 @@ contract LRTIntegrationTest is Test {
         string memory goerliRPC = vm.envString("PROVIDER_URL_TESTNET");
         goerliFork = vm.createSelectFork(goerliRPC);
 
-        lrtDepositPool = LRTDepositPool(0x83a3FAd2576352D2B3DafaEc89edD53c2B2f7980);
-        lrtConfig = LRTConfig(0x1D473340C50f4a8b553D6FE3C128259f2d0FEE05);
-        rseth = RSETH(0xD59a2ee7b69DC4EE1D862f11257F363154769A5E);
-        lrtOracle = LRTOracle(0x539a6243F966284Aa99D489314cEB5baB707e138);
-        nodeDelegator1 = NodeDelegator(0x5834B3C2F2888c60FB94C5A365C842F61FFB9a77);
+        lrtDepositPool = LRTDepositPool(0x8Ece5A05C62E548944C18504AFE424d0791c1684);
+        lrtConfig = LRTConfig(0x3E8b8FE30260d202b92891ab38aE8493c8a0a412);
+        rseth = RSETH(0xdc862C46F67a8A7B6412D51D10E1F5e19f1bCb62);
+        lrtOracle = LRTOracle(0x63F1Cff763Cf282a6CEB6Ba12dE781b79934770f);
+        nodeDelegator1 = NodeDelegator(0x991837c651902661fa88B80791d58dF56FD0Dd92);
 
-        (stETHAddress, rETHAddress, cbETHAddress) = getLSTs();
+        (stETHAddress, ethXAddress) = getLSTs();
     }
 }
 
@@ -65,7 +70,7 @@ contract LRTDepositPoolIntegrationTest is LRTIntegrationTest {
     function test_RevertWhenDepositAmountIsZeroForDepositAsset() external {
         vm.expectRevert(ILRTDepositPool.InvalidAmountToDeposit.selector);
 
-        lrtDepositPool.depositAsset(rETHAddress, 0, minAmountOfRSETHToReceive, referralId);
+        lrtDepositPool.depositAsset(ethXAddress, 0, minAmountOfRSETHToReceive, referralId);
     }
 
     function test_RevertWhenAssetIsNotSupportedForDepositAsset() external {
@@ -112,39 +117,43 @@ contract LRTDepositPoolIntegrationTest is LRTIntegrationTest {
         assertGt(stWhaleBalanceAfter, stWhaleBalanceBefore, "Alice balance is not set");
     }
 
-    function test_DepositAssetRETHWorksWhenUsingTheCorrectConditions() external {
+    function test_DepositAssetETHXWorksWhenUsingTheCorrectConditions() external {
+        if (block.chainid == 5) {
+            // this test skipped in goerli as ETHX Eigenlayer strategy is not deployed yet
+            vm.skip(true);
+        }
         uint256 amountToDeposit = 2 ether;
 
-        // rETHWhale balance of rsETH before deposit
-        uint256 rETHWhaleBalanceBefore = rseth.balanceOf(rETHWhale);
-        // total asset deposits before deposit for rETHETH
-        uint256 totalAssetDepositsBefore = lrtDepositPool.getTotalAssetDeposits(rETHAddress);
+        // ethXWhale balance of rsETH before deposit
+        uint256 ethXWhaleBalanceBefore = rseth.balanceOf(ethXWhale);
+        // total asset deposits before deposit for ethXETH
+        uint256 totalAssetDepositsBefore = lrtDepositPool.getTotalAssetDeposits(ethXAddress);
         // balance of lrtDepositPool before deposit
-        uint256 lrtDepositPoolBalanceBefore = ERC20(rETHAddress).balanceOf(address(lrtDepositPool));
+        uint256 lrtDepositPoolBalanceBefore = ERC20(ethXAddress).balanceOf(address(lrtDepositPool));
 
-        uint256 whalerETHBalBefore = ERC20(rETHAddress).balanceOf(address(rETHWhale));
-        vm.startPrank(rETHWhale);
-        ERC20(rETHAddress).approve(address(lrtDepositPool), amountToDeposit);
-        lrtDepositPool.depositAsset(rETHAddress, amountToDeposit, minAmountOfRSETHToReceive, referralId);
+        uint256 whaleethXBalBefore = ERC20(ethXAddress).balanceOf(address(ethXWhale));
+        vm.startPrank(ethXWhale);
+        ERC20(ethXAddress).approve(address(lrtDepositPool), amountToDeposit);
+        lrtDepositPool.depositAsset(ethXAddress, amountToDeposit, minAmountOfRSETHToReceive, referralId);
         vm.stopPrank();
-        uint256 whalerETHBalAfter = ERC20(rETHAddress).balanceOf(address(rETHWhale));
+        uint256 whaleethXBalAfter = ERC20(ethXAddress).balanceOf(address(ethXWhale));
 
-        console.log("whale rETHETH amount transfer:", whalerETHBalBefore - whalerETHBalAfter);
+        console.log("whale ethXETH amount transfer:", whaleethXBalBefore - whaleethXBalAfter);
 
-        // rETHWhale balance of rsETH after deposit
-        uint256 rETHWhaleBalanceAfter = rseth.balanceOf(address(rETHWhale));
+        // ethXWhale balance of rsETH after deposit
+        uint256 ethXWhaleBalanceAfter = rseth.balanceOf(address(ethXWhale));
 
         assertEq(
-            lrtDepositPool.getTotalAssetDeposits(rETHAddress),
+            lrtDepositPool.getTotalAssetDeposits(ethXAddress),
             totalAssetDepositsBefore + amountToDeposit,
             "Total asset deposits check is incorrect"
         );
         assertEq(
-            ERC20(rETHAddress).balanceOf(address(lrtDepositPool)),
+            ERC20(ethXAddress).balanceOf(address(lrtDepositPool)),
             lrtDepositPoolBalanceBefore + amountToDeposit,
             "lrtDepositPool balance is not set"
         );
-        assertGt(rETHWhaleBalanceAfter, rETHWhaleBalanceBefore, "Alice balance is not set");
+        assertGt(ethXWhaleBalanceAfter, ethXWhaleBalanceBefore, "Alice balance is not set");
     }
 
     function test_GetCurrentAssetLimitAfterAssetIsDepositedInLRTDepositPool() external {
@@ -248,19 +257,24 @@ contract LRTDepositPoolIntegrationTest is LRTIntegrationTest {
         );
     }
 
-    function test_TransferAssetRETHToNodeDelegatorWhenCalledbyManager() external {
+    function test_TransferAssetETHXToNodeDelegatorWhenCalledbyManager() external {
+        if (block.chainid == 5) {
+            // this test skipped in goerli as ETHX Eigenlayer strategy is not deployed yet
+            vm.skip(true);
+        }
+
         uint256 amountToTransfer = 1e18;
 
-        uint256 lrtDepositPoolBalanceBefore = ERC20(rETHAddress).balanceOf(address(lrtDepositPool));
-        uint256 totalDepositsInrETHBeforeDeposit = lrtDepositPool.getTotalAssetDeposits(rETHAddress);
+        uint256 lrtDepositPoolBalanceBefore = ERC20(ethXAddress).balanceOf(address(lrtDepositPool));
+        uint256 totalDepositsInethXBeforeDeposit = lrtDepositPool.getTotalAssetDeposits(ethXAddress);
 
         vm.startPrank(stWhale);
-        ERC20(rETHAddress).approve(address(lrtDepositPool), amountToTransfer);
-        lrtDepositPool.depositAsset(rETHAddress, amountToTransfer, minAmountOfRSETHToReceive, referralId);
+        ERC20(ethXAddress).approve(address(lrtDepositPool), amountToTransfer);
+        lrtDepositPool.depositAsset(ethXAddress, amountToTransfer, minAmountOfRSETHToReceive, referralId);
         vm.stopPrank();
 
         assertEq(
-            ERC20(rETHAddress).balanceOf(address(lrtDepositPool)),
+            ERC20(ethXAddress).balanceOf(address(lrtDepositPool)),
             lrtDepositPoolBalanceBefore + amountToTransfer,
             "lrtDepositPool balance is not set"
         );
@@ -275,16 +289,16 @@ contract LRTDepositPoolIntegrationTest is LRTIntegrationTest {
             }
         }
 
-        uint256 nodeDelegator1BalanceBefore = ERC20(rETHAddress).balanceOf(address(nodeDelegator1));
+        uint256 nodeDelegator1BalanceBefore = ERC20(ethXAddress).balanceOf(address(nodeDelegator1));
 
         vm.prank(manager);
-        lrtDepositPool.transferAssetToNodeDelegator(indexOfNodeDelegator, rETHAddress, amountToTransfer);
+        lrtDepositPool.transferAssetToNodeDelegator(indexOfNodeDelegator, ethXAddress, amountToTransfer);
 
-        uint256 nodeDelegator1BalanceAfter = ERC20(rETHAddress).balanceOf(address(nodeDelegator1));
+        uint256 nodeDelegator1BalanceAfter = ERC20(ethXAddress).balanceOf(address(nodeDelegator1));
 
         assertEq(
-            lrtDepositPool.getTotalAssetDeposits(rETHAddress),
-            totalDepositsInrETHBeforeDeposit + amountToTransfer,
+            lrtDepositPool.getTotalAssetDeposits(ethXAddress),
+            totalDepositsInethXBeforeDeposit + amountToTransfer,
             "Total asset deposits is not set"
         );
 
@@ -295,7 +309,7 @@ contract LRTDepositPoolIntegrationTest is LRTIntegrationTest {
             "node delegator 1 balance is not set"
         );
         assertEq(
-            ERC20(rETHAddress).balanceOf(address(nodeDelegator1)),
+            ERC20(ethXAddress).balanceOf(address(nodeDelegator1)),
             amountToTransfer,
             "node delegator 1 balance is not set"
         );
@@ -346,23 +360,19 @@ contract LRTConfigIntegrationTest is LRTIntegrationTest {
 
         // tokens
         assertEq(stETHAddress, lrtConfig.getLSTToken(LRTConstants.ST_ETH_TOKEN));
-        assertEq(rETHAddress, lrtConfig.getLSTToken(LRTConstants.R_ETH_TOKEN));
-        assertEq(cbETHAddress, lrtConfig.getLSTToken(LRTConstants.CB_ETH_TOKEN));
+        assertEq(ethXAddress, lrtConfig.getLSTToken(LRTConstants.ETHX_TOKEN));
         assertEq(address(rseth), lrtConfig.rsETH());
 
-        // assertEq(lrtConfig.depositLimitByAsset(stETHAddress), 100_000 ether);
-        // assertEq(lrtConfig.depositLimitByAsset(rETHAddress), 100_000 ether);
-        // assertEq(lrtConfig.depositLimitByAsset(cbETHAddress), 0); // set to 0 for goerli
+        assertEq(lrtConfig.depositLimitByAsset(stETHAddress), 100_000 ether);
+        assertEq(lrtConfig.depositLimitByAsset(ethXAddress), 100_000 ether);
 
         assertTrue(lrtConfig.isSupportedAsset(stETHAddress));
-        assertTrue(lrtConfig.isSupportedAsset(rETHAddress));
-        assertTrue(lrtConfig.isSupportedAsset(cbETHAddress));
+        assertTrue(lrtConfig.isSupportedAsset(ethXAddress));
 
-        assertEq(vm.envAddress("STETH_STRATEGY"), lrtConfig.assetStrategy(stETHAddress));
-        assertEq(vm.envAddress("RETH_STRATEGY"), lrtConfig.assetStrategy(rETHAddress));
-        assertEq(vm.envAddress("CBETH_STRATEGY"), lrtConfig.assetStrategy(cbETHAddress));
+        assertEq(GOERLI_EIGEN_STETH_STRATEGY, lrtConfig.assetStrategy(stETHAddress));
+        // assertEq(vm.envAddress("ETHX_STRATEGY"), lrtConfig.assetStrategy(ethXAddress));
 
-        assertEq(vm.envAddress("EIGEN_STRATEGY_MANAGER"), lrtConfig.getContract(LRTConstants.EIGEN_STRATEGY_MANAGER));
+        assertEq(GOERLI_EIGEN_STRATEGY_MANAGER, lrtConfig.getContract(LRTConstants.EIGEN_STRATEGY_MANAGER));
         assertEq(address(lrtDepositPool), lrtConfig.getContract(LRTConstants.LRT_DEPOSIT_POOL));
         assertEq(address(lrtOracle), lrtConfig.getContract(LRTConstants.LRT_ORACLE));
     }
@@ -370,7 +380,7 @@ contract LRTConfigIntegrationTest is LRTIntegrationTest {
     function test_LRTConfigIsAlreadyInitialized() public {
         // attempt to initialize LRTConfig again reverts
         vm.expectRevert("Initializable: contract is already initialized");
-        lrtConfig.initialize(admin, stETHAddress, rETHAddress, cbETHAddress, address(rseth));
+        lrtConfig.initialize(admin, stETHAddress, ethXAddress, address(rseth));
     }
 
     function test_RevertWhenCallingAddNewAssetByANonLRTManager() external {
@@ -556,19 +566,14 @@ contract LRTConfigIntegrationTest is LRTIntegrationTest {
 
 contract LRTOracleIntegrationTest is LRTIntegrationTest {
     function test_LRTOracleSetup() public {
-        assertLt(lrtOracle.getAssetPrice(rETHAddress), 1.2 ether);
-        assertGt(lrtOracle.getAssetPrice(rETHAddress) + 1, 1 ether);
-
-        assertLt(lrtOracle.getAssetPrice(cbETHAddress), 1.2 ether);
-        assertGt(lrtOracle.getAssetPrice(cbETHAddress) + 1, 1 ether);
+        assertLt(lrtOracle.getAssetPrice(ethXAddress), 1.2 ether);
+        assertGt(lrtOracle.getAssetPrice(ethXAddress) + 1, 1 ether);
 
         assertLt(lrtOracle.getAssetPrice(stETHAddress), 1.2 ether);
         assertGt(lrtOracle.getAssetPrice(stETHAddress), 0.9 ether);
 
-        address chainlinkOracle = 0xC2fD5D2b0e90D8a4695cfF313bAEcc457BB0a82A;
         assertEq(lrtOracle.assetPriceOracle(stETHAddress), chainlinkOracle);
-        assertEq(lrtOracle.assetPriceOracle(rETHAddress), chainlinkOracle);
-        assertEq(lrtOracle.assetPriceOracle(cbETHAddress), chainlinkOracle);
+        assertEq(lrtOracle.assetPriceOracle(ethXAddress), ethxPriceOracle);
     }
 
     function test_LRTOracleIsAlreadyInitialized() public {

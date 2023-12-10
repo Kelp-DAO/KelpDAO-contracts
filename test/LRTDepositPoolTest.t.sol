@@ -73,7 +73,7 @@ contract LRTDepositPoolInitialize is LRTDepositPoolTest {
 }
 
 contract LRTDepositPoolDepositAsset is LRTDepositPoolTest {
-    address public rETHAddress;
+    address public ethXAddress;
 
     function setUp() public override {
         super.setUp();
@@ -81,7 +81,7 @@ contract LRTDepositPoolDepositAsset is LRTDepositPoolTest {
         // initialize LRTDepositPool
         lrtDepositPool.initialize(address(lrtConfig));
 
-        rETHAddress = address(rETH);
+        ethXAddress = address(ethX);
 
         // add manager role within LRTConfig
         vm.startPrank(admin);
@@ -91,7 +91,7 @@ contract LRTDepositPoolDepositAsset is LRTDepositPoolTest {
 
     function test_RevertWhenDepositAmountIsZero() external {
         vm.expectRevert(ILRTDepositPool.InvalidAmountToDeposit.selector);
-        lrtDepositPool.depositAsset(rETHAddress, 0, minimunAmountOfRSETHToReceive, referralId);
+        lrtDepositPool.depositAsset(ethXAddress, 0, minimunAmountOfRSETHToReceive, referralId);
     }
 
     function test_RevertWhenDepositAmountIsLessThanMinAmountToDeposit() external {
@@ -100,7 +100,7 @@ contract LRTDepositPoolDepositAsset is LRTDepositPoolTest {
         vm.stopPrank();
 
         vm.expectRevert(ILRTDepositPool.InvalidAmountToDeposit.selector);
-        lrtDepositPool.depositAsset(rETHAddress, 0.5 ether, minimunAmountOfRSETHToReceive, referralId);
+        lrtDepositPool.depositAsset(ethXAddress, 0.5 ether, minimunAmountOfRSETHToReceive, referralId);
     }
 
     function test_RevertWhenAssetIsNotSupported() external {
@@ -112,22 +112,22 @@ contract LRTDepositPoolDepositAsset is LRTDepositPoolTest {
 
     function test_RevertWhenDepositAmountExceedsLimit() external {
         vm.prank(manager);
-        lrtConfig.updateAssetDepositLimit(rETHAddress, 1 ether);
+        lrtConfig.updateAssetDepositLimit(ethXAddress, 1 ether);
 
         vm.expectRevert(ILRTDepositPool.MaximumDepositLimitReached.selector);
-        lrtDepositPool.depositAsset(rETHAddress, 2 ether, minimunAmountOfRSETHToReceive, referralId);
+        lrtDepositPool.depositAsset(ethXAddress, 2 ether, minimunAmountOfRSETHToReceive, referralId);
     }
 
     function test_RevertWhenMinAmountToReceiveIsNotMet() external {
         vm.startPrank(alice);
 
-        rETH.approve(address(lrtDepositPool), 2 ether);
+        ethX.approve(address(lrtDepositPool), 2 ether);
 
         // increase the minimum amount of rsETH to receive to an amount that is not met
         minimunAmountOfRSETHToReceive = 100 ether;
 
         vm.expectRevert(ILRTDepositPool.MinimumAmountToReceiveNotMet.selector);
-        lrtDepositPool.depositAsset(rETHAddress, 0.5 ether, minimunAmountOfRSETHToReceive, referralId);
+        lrtDepositPool.depositAsset(ethXAddress, 0.5 ether, minimunAmountOfRSETHToReceive, referralId);
 
         vm.stopPrank();
     }
@@ -138,16 +138,16 @@ contract LRTDepositPoolDepositAsset is LRTDepositPoolTest {
         // alice balance of rsETH before deposit
         uint256 aliceBalanceBefore = rseth.balanceOf(address(alice));
 
-        minimunAmountOfRSETHToReceive = lrtDepositPool.getRsETHAmountToMint(rETHAddress, 2 ether);
+        minimunAmountOfRSETHToReceive = lrtDepositPool.getRsETHAmountToMint(ethXAddress, 2 ether);
 
-        rETH.approve(address(lrtDepositPool), 2 ether);
-        lrtDepositPool.depositAsset(rETHAddress, 2 ether, minimunAmountOfRSETHToReceive, referralId);
+        ethX.approve(address(lrtDepositPool), 2 ether);
+        lrtDepositPool.depositAsset(ethXAddress, 2 ether, minimunAmountOfRSETHToReceive, referralId);
 
         // alice balance of rsETH after deposit
         uint256 aliceBalanceAfter = rseth.balanceOf(address(alice));
         vm.stopPrank();
 
-        assertEq(lrtDepositPool.getTotalAssetDeposits(rETHAddress), 2 ether, "Total asset deposits is not set");
+        assertEq(lrtDepositPool.getTotalAssetDeposits(ethXAddress), 2 ether, "Total asset deposits is not set");
         assertGt(aliceBalanceAfter, aliceBalanceBefore, "Alice balance is not set");
     }
 
@@ -172,7 +172,7 @@ contract LRTDepositPoolDepositAsset is LRTDepositPoolTest {
 }
 
 contract LRTDepositPoolGetRsETHAmountToMint is LRTDepositPoolTest {
-    address public rETHAddress;
+    address public ethXAddress;
 
     function setUp() public override {
         super.setUp();
@@ -180,7 +180,7 @@ contract LRTDepositPoolGetRsETHAmountToMint is LRTDepositPoolTest {
         // initialize LRTDepositPool
         lrtDepositPool.initialize(address(lrtConfig));
 
-        rETHAddress = address(rETH);
+        ethXAddress = address(ethX);
 
         // add manager role within LRTConfig
         vm.startPrank(admin);
@@ -191,11 +191,11 @@ contract LRTDepositPoolGetRsETHAmountToMint is LRTDepositPoolTest {
     function test_GetRsETHAmountToMint() external {
         uint256 amountToDeposit = 1 ether;
         vm.startPrank(manager);
-        lrtConfig.updateAssetDepositLimit(rETHAddress, amountToDeposit);
+        lrtConfig.updateAssetDepositLimit(ethXAddress, amountToDeposit);
         vm.stopPrank();
 
         assertEq(
-            lrtDepositPool.getRsETHAmountToMint(rETHAddress, amountToDeposit),
+            lrtDepositPool.getRsETHAmountToMint(ethXAddress, amountToDeposit),
             1 ether,
             "RsETH amount to mint is incorrect"
         );
@@ -203,7 +203,7 @@ contract LRTDepositPoolGetRsETHAmountToMint is LRTDepositPoolTest {
 }
 
 contract LRTDepositPoolGetAssetCurrentLimit is LRTDepositPoolTest {
-    address public rETHAddress;
+    address public ethXAddress;
 
     function setUp() public override {
         super.setUp();
@@ -211,7 +211,7 @@ contract LRTDepositPoolGetAssetCurrentLimit is LRTDepositPoolTest {
         // initialize LRTDepositPool
         lrtDepositPool.initialize(address(lrtConfig));
 
-        rETHAddress = address(rETH);
+        ethXAddress = address(ethX);
 
         // add manager role within LRTConfig
         vm.startPrank(admin);
@@ -292,16 +292,16 @@ contract LRTDepositPoolGetTotalAssetDeposits is LRTDepositPoolTest {
 
         uint256 amountToDeposit = 1 ether;
 
-        uint256 totalDepositsBefore = lrtDepositPool.getTotalAssetDeposits(address(rETH));
+        uint256 totalDepositsBefore = lrtDepositPool.getTotalAssetDeposits(address(ethX));
 
-        // deposit rETH
+        // deposit ethX
         vm.startPrank(alice);
-        rETH.approve(address(lrtDepositPool), amountToDeposit);
-        lrtDepositPool.depositAsset(address(rETH), amountToDeposit, minimunAmountOfRSETHToReceive, referralId);
+        ethX.approve(address(lrtDepositPool), amountToDeposit);
+        lrtDepositPool.depositAsset(address(ethX), amountToDeposit, minimunAmountOfRSETHToReceive, referralId);
         vm.stopPrank();
 
         assertEq(
-            lrtDepositPool.getTotalAssetDeposits(address(rETH)),
+            lrtDepositPool.getTotalAssetDeposits(address(ethX)),
             totalDepositsBefore + amountToDeposit,
             "Incorrect total asset deposits amount"
         );
@@ -309,7 +309,7 @@ contract LRTDepositPoolGetTotalAssetDeposits is LRTDepositPoolTest {
 }
 
 contract LRTDepositPoolGetAssetDistributionData is LRTDepositPoolTest {
-    address public rETHAddress;
+    address public ethXAddress;
 
     function setUp() public override {
         super.setUp();
@@ -317,7 +317,7 @@ contract LRTDepositPoolGetAssetDistributionData is LRTDepositPoolTest {
         // initialize LRTDepositPool
         lrtDepositPool.initialize(address(lrtConfig));
 
-        rETHAddress = address(rETH);
+        ethXAddress = address(ethX);
 
         // add manager role within LRTConfig
         vm.startPrank(admin);
@@ -339,14 +339,14 @@ contract LRTDepositPoolGetAssetDistributionData is LRTDepositPoolTest {
         lrtDepositPool.addNodeDelegatorContractToQueue(nodeDelegatorQueue);
         vm.stopPrank();
 
-        // deposit 3 ether rETH
+        // deposit 3 ether ethX
         vm.startPrank(alice);
-        rETH.approve(address(lrtDepositPool), 3 ether);
-        lrtDepositPool.depositAsset(rETHAddress, 3 ether, minimunAmountOfRSETHToReceive, referralId);
+        ethX.approve(address(lrtDepositPool), 3 ether);
+        lrtDepositPool.depositAsset(ethXAddress, 3 ether, minimunAmountOfRSETHToReceive, referralId);
         vm.stopPrank();
 
         (uint256 assetLyingInDepositPool, uint256 assetLyingInNDCs, uint256 assetStakedInEigenLayer) =
-            lrtDepositPool.getAssetDistributionData(rETHAddress);
+            lrtDepositPool.getAssetDistributionData(ethXAddress);
 
         assertEq(assetLyingInDepositPool, 3 ether, "Asset lying in deposit pool is not set");
         assertEq(assetLyingInNDCs, 0, "Asset lying in NDCs is not set");
@@ -484,16 +484,16 @@ contract LRTDepositPoolTransferAssetToNodeDelegator is LRTDepositPoolTest {
         vm.startPrank(alice);
 
         vm.expectRevert(ILRTConfig.CallerNotLRTConfigManager.selector);
-        lrtDepositPool.transferAssetToNodeDelegator(0, address(rETH), 1 ether);
+        lrtDepositPool.transferAssetToNodeDelegator(0, address(ethX), 1 ether);
 
         vm.stopPrank();
     }
 
     function test_TransferAssetToNodeDelegator() external {
-        // deposit 3 ether rETH
+        // deposit 3 ether ethX
         vm.startPrank(alice);
-        rETH.approve(address(lrtDepositPool), 3 ether);
-        lrtDepositPool.depositAsset(address(rETH), 3 ether, minimunAmountOfRSETHToReceive, referralId);
+        ethX.approve(address(lrtDepositPool), 3 ether);
+        lrtDepositPool.depositAsset(address(ethX), 3 ether, minimunAmountOfRSETHToReceive, referralId);
         vm.stopPrank();
 
         uint256 indexOfNodeDelegatorContractOneInNDArray;
@@ -505,13 +505,13 @@ contract LRTDepositPoolTransferAssetToNodeDelegator is LRTDepositPoolTest {
             }
         }
 
-        // transfer 1 ether rETH to node delegator contract one
+        // transfer 1 ether ethX to node delegator contract one
         vm.startPrank(manager);
-        lrtDepositPool.transferAssetToNodeDelegator(indexOfNodeDelegatorContractOneInNDArray, address(rETH), 1 ether);
+        lrtDepositPool.transferAssetToNodeDelegator(indexOfNodeDelegatorContractOneInNDArray, address(ethX), 1 ether);
         vm.stopPrank();
 
-        assertEq(rETH.balanceOf(address(lrtDepositPool)), 2 ether, "Asset amount in lrtDepositPool is incorrect");
-        assertEq(rETH.balanceOf(nodeDelegatorContractOne), 1 ether, "Asset is not transferred to node delegator");
+        assertEq(ethX.balanceOf(address(lrtDepositPool)), 2 ether, "Asset amount in lrtDepositPool is incorrect");
+        assertEq(ethX.balanceOf(nodeDelegatorContractOne), 1 ether, "Asset is not transferred to node delegator");
     }
 }
 

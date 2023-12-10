@@ -35,62 +35,54 @@ contract LRTConfigTest is BaseTest {
 
 contract LRTConfigInitialize is LRTConfigTest {
     function test_RevertInitializeIfAlreadyInitialized() external {
-        lrtConfig.initialize(admin, address(stETH), address(rETH), address(cbETH), rsethMock);
+        lrtConfig.initialize(admin, address(stETH), address(ethX), rsethMock);
 
         vm.startPrank(admin);
         // cannot initialize again
         vm.expectRevert("Initializable: contract is already initialized");
-        lrtConfig.initialize(admin, address(stETH), address(rETH), address(cbETH), rsethMock);
+        lrtConfig.initialize(admin, address(stETH), address(ethX), rsethMock);
         vm.stopPrank();
     }
 
     function test_RevertInitializeIfAdminIsZero() external {
         vm.startPrank(admin);
         vm.expectRevert(UtilLib.ZeroAddressNotAllowed.selector);
-        lrtConfig.initialize(address(0), address(stETH), address(rETH), address(cbETH), rsethMock);
+        lrtConfig.initialize(address(0), address(stETH), address(ethX), rsethMock);
         vm.stopPrank();
     }
 
     function test_RevertInitializeIfStETHIsZero() external {
         vm.startPrank(admin);
         vm.expectRevert(UtilLib.ZeroAddressNotAllowed.selector);
-        lrtConfig.initialize(admin, address(0), address(rETH), address(cbETH), rsethMock);
+        lrtConfig.initialize(admin, address(0), address(ethX), rsethMock);
         vm.stopPrank();
     }
 
-    function test_RevertInitializeIfRETHIsZero() external {
+    function test_RevertInitializeIfETHXIsZero() external {
         vm.startPrank(admin);
         vm.expectRevert(UtilLib.ZeroAddressNotAllowed.selector);
-        lrtConfig.initialize(admin, address(stETH), address(0), address(cbETH), rsethMock);
-        vm.stopPrank();
-    }
-
-    function test_RevertInitializeIfCbETHIsZero() external {
-        vm.startPrank(admin);
-        vm.expectRevert(UtilLib.ZeroAddressNotAllowed.selector);
-        lrtConfig.initialize(admin, address(stETH), address(rETH), address(0), rsethMock);
+        lrtConfig.initialize(admin, address(stETH), address(0), rsethMock);
         vm.stopPrank();
     }
 
     function test_RevertWhenRSETHIsZeroAddress() external {
         vm.startPrank(admin);
         vm.expectRevert(UtilLib.ZeroAddressNotAllowed.selector);
-        lrtConfig.initialize(admin, address(stETH), address(rETH), address(cbETH), address(0));
+        lrtConfig.initialize(admin, address(stETH), address(ethX), address(0));
         vm.stopPrank();
     }
 
     function test_SetInitializableValues() external {
-        lrtConfig.initialize(admin, address(stETH), address(rETH), address(cbETH), rsethMock);
+        lrtConfig.initialize(admin, address(stETH), address(ethX), rsethMock);
 
         assertEq(lrtConfig.tokenMap(LRTConstants.ST_ETH_TOKEN), address(stETH));
-        assertEq(lrtConfig.tokenMap(LRTConstants.R_ETH_TOKEN), address(rETH));
-        assertEq(lrtConfig.tokenMap(LRTConstants.CB_ETH_TOKEN), address(cbETH));
+        assertEq(lrtConfig.tokenMap(LRTConstants.ETHX_TOKEN), address(ethX));
+
         assertTrue(lrtConfig.hasRole(lrtConfig.DEFAULT_ADMIN_ROLE(), admin));
 
         uint256 depositLimit = 100_000 ether;
         assertEq(lrtConfig.depositLimitByAsset(address(stETH)), depositLimit);
-        assertEq(lrtConfig.depositLimitByAsset(address(rETH)), depositLimit);
-        assertEq(lrtConfig.depositLimitByAsset(address(cbETH)), depositLimit);
+        assertEq(lrtConfig.depositLimitByAsset(address(ethX)), depositLimit);
     }
 }
 
@@ -98,7 +90,7 @@ contract LRTConfigAddNewSupportedAssetTest is LRTConfigTest {
     function setUp() public override {
         super.setUp();
 
-        lrtConfig.initialize(admin, address(stETH), address(rETH), address(cbETH), rsethMock);
+        lrtConfig.initialize(admin, address(stETH), address(ethX), rsethMock);
 
         vm.startPrank(admin);
         lrtConfig.grantRole(LRTConstants.MANAGER, manager);
@@ -144,7 +136,7 @@ contract LRTConfigUpdateAssetDepositLimitTest is LRTConfigTest {
     function setUp() public override {
         super.setUp();
 
-        lrtConfig.initialize(admin, address(stETH), address(rETH), address(cbETH), rsethMock);
+        lrtConfig.initialize(admin, address(stETH), address(ethX), rsethMock);
 
         vm.startPrank(admin);
         lrtConfig.grantRole(LRTConstants.MANAGER, manager);
@@ -173,17 +165,15 @@ contract LRTConfigUpdateAssetDepositLimitTest is LRTConfigTest {
 
         vm.startPrank(manager);
         lrtConfig.updateAssetDepositLimit(address(stETH), depositLimit);
-        lrtConfig.updateAssetDepositLimit(address(rETH), depositLimit);
 
         expectEmit();
-        emit AssetDepositLimitUpdate(address(cbETH), depositLimit);
-        lrtConfig.updateAssetDepositLimit(address(cbETH), depositLimit);
+        emit AssetDepositLimitUpdate(address(ethX), depositLimit);
+        lrtConfig.updateAssetDepositLimit(address(ethX), depositLimit);
 
         vm.stopPrank();
 
         assertEq(lrtConfig.depositLimitByAsset(address(stETH)), depositLimit);
-        assertEq(lrtConfig.depositLimitByAsset(address(rETH)), depositLimit);
-        assertEq(lrtConfig.depositLimitByAsset(address(cbETH)), depositLimit);
+        assertEq(lrtConfig.depositLimitByAsset(address(ethX)), depositLimit);
     }
 }
 
@@ -191,7 +181,7 @@ contract LRTConfigUpdateAssetStrategyTest is LRTConfigTest {
     function setUp() public override {
         super.setUp();
 
-        lrtConfig.initialize(admin, address(stETH), address(rETH), address(cbETH), rsethMock);
+        lrtConfig.initialize(admin, address(stETH), address(ethX), rsethMock);
 
         vm.startPrank(admin);
         lrtConfig.grantRole(LRTConstants.MANAGER, manager);
@@ -250,7 +240,7 @@ contract LRTConfigGettersTest is LRTConfigTest {
     function setUp() public override {
         super.setUp();
 
-        lrtConfig.initialize(admin, address(stETH), address(rETH), address(cbETH), rsethMock);
+        lrtConfig.initialize(admin, address(stETH), address(ethX), rsethMock);
 
         vm.startPrank(admin);
         lrtConfig.grantRole(LRTConstants.MANAGER, manager);
@@ -259,8 +249,7 @@ contract LRTConfigGettersTest is LRTConfigTest {
 
     function test_GetLSTToken() external {
         assertEq(lrtConfig.getLSTToken(LRTConstants.ST_ETH_TOKEN), address(stETH));
-        assertEq(lrtConfig.getLSTToken(LRTConstants.R_ETH_TOKEN), address(rETH));
-        assertEq(lrtConfig.getLSTToken(LRTConstants.CB_ETH_TOKEN), address(cbETH));
+        assertEq(lrtConfig.getLSTToken(LRTConstants.ETHX_TOKEN), address(ethX));
     }
 
     function test_GetContract() external {
@@ -285,7 +274,7 @@ contract LRTConfigSettersTest is LRTConfigTest {
     function setUp() public override {
         super.setUp();
 
-        lrtConfig.initialize(admin, address(stETH), address(rETH), address(cbETH), rsethMock);
+        lrtConfig.initialize(admin, address(stETH), address(ethX), rsethMock);
 
         vm.startPrank(admin);
         lrtConfig.grantRole(LRTConstants.MANAGER, manager);

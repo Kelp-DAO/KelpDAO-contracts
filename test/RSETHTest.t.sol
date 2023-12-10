@@ -17,7 +17,7 @@ contract RSETHTest is BaseTest, LRTConfigTest {
         super.setUp();
 
         // initialize LRTConfig
-        lrtConfig.initialize(admin, address(stETH), address(rETH), address(cbETH), rsethMock);
+        lrtConfig.initialize(admin, address(stETH), address(ethX), rsethMock);
 
         ProxyAdmin proxyAdmin = new ProxyAdmin();
         RSETH tokenImpl = new RSETH();

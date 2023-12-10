@@ -43,7 +43,7 @@ contract LRTOracleTest is LRTConfigTest {
         rsETHMock = new MockToken("rsETH", "rsETH");
 
         // initialize LRTConfig
-        lrtConfig.initialize(admin, address(stETH), address(rETH), address(cbETH), address(rsETHMock));
+        lrtConfig.initialize(admin, address(stETH), address(ethX), address(rsETHMock));
 
         lrtDepositPoolMock = new MockLRTDepositPool();
 
@@ -102,7 +102,7 @@ contract LRTOracleSetPriceOracle is LRTOracleTest {
     function test_RevertWhenCallerIsNotLRTManager() external {
         vm.startPrank(alice);
         vm.expectRevert(ILRTConfig.CallerNotLRTConfigManager.selector);
-        lrtOracle.updatePriceOracleFor(address(rETH), address(priceOracle));
+        lrtOracle.updatePriceOracleFor(address(ethX), address(priceOracle));
         vm.stopPrank();
     }
 
@@ -117,20 +117,20 @@ contract LRTOracleSetPriceOracle is LRTOracleTest {
     function test_RevertWhenPriceOracleIsZero() external {
         vm.startPrank(manager);
         vm.expectRevert(UtilLib.ZeroAddressNotAllowed.selector);
-        lrtOracle.updatePriceOracleFor(address(rETH), address(0));
+        lrtOracle.updatePriceOracleFor(address(ethX), address(0));
         vm.stopPrank();
     }
 
     function test_SetAssetPriceFeed() external {
-        assertEq(lrtOracle.assetPriceOracle(address(rETH)), address(0));
+        assertEq(lrtOracle.assetPriceOracle(address(ethX)), address(0));
 
         vm.startPrank(manager);
         expectEmit();
-        emit AssetPriceOracleUpdate(address(rETH), address(priceOracle));
-        lrtOracle.updatePriceOracleFor(address(rETH), address(priceOracle));
+        emit AssetPriceOracleUpdate(address(ethX), address(priceOracle));
+        lrtOracle.updatePriceOracleFor(address(ethX), address(priceOracle));
         vm.stopPrank();
 
-        assertEq(lrtOracle.assetPriceOracle(address(rETH)), address(priceOracle));
+        assertEq(lrtOracle.assetPriceOracle(address(ethX)), address(priceOracle));
     }
 }
 
@@ -143,7 +143,7 @@ contract LRTOracleFetchAssetPrice is LRTOracleTest {
         priceOracle = new MockPriceOracle();
 
         vm.prank(manager);
-        lrtOracle.updatePriceOracleFor(address(rETH), address(priceOracle));
+        lrtOracle.updatePriceOracleFor(address(ethX), address(priceOracle));
     }
 
     function test_RevertWhenAssetIsNotSupported() external {
@@ -153,8 +153,8 @@ contract LRTOracleFetchAssetPrice is LRTOracleTest {
     }
 
     function test_FetchAssetPrice() external {
-        uint256 rETHPrice = lrtOracle.getAssetPrice(address(rETH));
-        assertEq(rETHPrice, 2 ether);
+        uint256 ethXPrice = lrtOracle.getAssetPrice(address(ethX));
+        assertEq(ethXPrice, 2 ether);
     }
 }
 
@@ -168,9 +168,8 @@ contract LRTOracleFetchRSETHPrice is LRTOracleTest {
         priceOracle = new MockPriceOracle();
 
         vm.startPrank(manager);
-        lrtOracle.updatePriceOracleFor(address(rETH), address(priceOracle));
+        lrtOracle.updatePriceOracleFor(address(ethX), address(priceOracle));
         lrtOracle.updatePriceOracleFor(address(stETH), address(priceOracle));
-        lrtOracle.updatePriceOracleFor(address(cbETH), address(priceOracle));
         vm.stopPrank();
     }
 
@@ -181,9 +180,9 @@ contract LRTOracleFetchRSETHPrice is LRTOracleTest {
     }
 
     function test_FetchRSETHPrice() external {
-        vm.mockCall(address(rsETHMock), abi.encodeWithSelector(ERC20.totalSupply.selector), abi.encode(3 ether));
+        vm.mockCall(address(rsETHMock), abi.encodeWithSelector(ERC20.totalSupply.selector), abi.encode(4 ether));
         lrtOracle.updateRSETHPrice();
-        assertEq(rsETHMock.totalSupply(), 3 ether);
-        assertEq(lrtOracle.rsETHPrice(), 2 ether);
+        assertEq(rsETHMock.totalSupply(), 4 ether);
+        assertEq(lrtOracle.rsETHPrice(), 1 ether);
     }
 }

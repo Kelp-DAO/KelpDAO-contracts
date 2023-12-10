@@ -9,26 +9,24 @@ import { RSETH } from "contracts/RSETH.sol";
 import { LRTDepositPool } from "contracts/LRTDepositPool.sol";
 import { LRTOracle } from "contracts/LRTOracle.sol";
 import { ChainlinkPriceOracle } from "contracts/oracles/ChainlinkPriceOracle.sol";
+import { EthXPriceOracle } from "contracts/oracles/EthXPriceOracle.sol";
 import { NodeDelegator } from "contracts/NodeDelegator.sol";
 
 import { ProxyFactory } from "script/foundry-scripts/utils/ProxyFactory.sol";
 import { ProxyAdmin } from "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
 import { MockPriceAggregator } from "script/foundry-scripts/utils/MockPriceAggregator.sol";
 
-function getLSTs() view returns (address stETH, address rETH, address cbETH) {
+function getLSTs() view returns (address stETH, address ethx) {
     uint256 chainId = block.chainid;
 
     if (chainId == 1) {
         // mainnet
         stETH = 0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84;
-        rETH = 0xae78736Cd615f374D3085123A210448E74Fc6393;
-        cbETH = 0xBe9895146f7AF43049ca1c1AE358B0541Ea49704;
+        ethx = 0xA35b1B31Ce002FBF2058D22F30f95D405200A15b;
     } else if (chainId == 5) {
         // goerli
         stETH = 0x1643E812aE58766192Cf7D2Cf9567dF2C37e9B7F;
-        rETH = 0x178E141a0E3b34152f73Ff610437A7bf9B83267A;
-        cbETH = 0x298aFB19A105D59E74658C4C334Ff360BadE6dd2; // (tseth) random address as it is not supported by eigen
-            // layer on goerli
+        ethx = 0x3338eCd3ab3d3503c55c931d759fA6d78d287236;
     } else {
         revert("Unsupported network");
     }
@@ -45,6 +43,7 @@ contract DeployLRT is Script {
     LRTDepositPool public lrtDepositPoolProxy;
     LRTOracle public lrtOracleProxy;
     ChainlinkPriceOracle public chainlinkPriceOracleProxy;
+    EthXPriceOracle public ethXPriceOracleProxy;
     NodeDelegator public nodeDelegatorProxy1;
     NodeDelegator public nodeDelegatorProxy2;
     NodeDelegator public nodeDelegatorProxy3;
@@ -52,45 +51,52 @@ contract DeployLRT is Script {
     NodeDelegator public nodeDelegatorProxy5;
     address[] public nodeDelegatorContracts;
 
-    // TODO: check if this is the right amount
-    uint256 public minAmountToDeposit = 0.01 ether;
+    uint256 public minAmountToDeposit;
 
     function maxApproveToEigenStrategyManager(address nodeDel) private {
-        (address stETH, address rETH, address cbETH) = getLSTs();
+        (address stETH, address ethx) = getLSTs();
         NodeDelegator(nodeDel).maxApproveToEigenStrategyManager(stETH);
-        NodeDelegator(nodeDel).maxApproveToEigenStrategyManager(rETH);
-        NodeDelegator(nodeDel).maxApproveToEigenStrategyManager(cbETH);
+        NodeDelegator(nodeDel).maxApproveToEigenStrategyManager(ethx);
     }
 
     function getAssetStrategies()
         private
         view
-        returns (address strategyManager, address stETHStrategy, address rETHStrategy, address cbETHStrategy)
+        returns (address strategyManager, address stETHStrategy, address ethXStrategy)
     {
-        strategyManager = vm.envAddress("EIGEN_STRATEGY_MANAGER");
-        stETHStrategy = vm.envAddress("STETH_STRATEGY");
-        rETHStrategy = vm.envAddress("RETH_STRATEGY");
-        cbETHStrategy = vm.envAddress("CBETH_STRATEGY");
+        uint256 chainId = block.chainid;
+        // https://github.com/Layr-Labs/eigenlayer-contracts#deployments
+        if (chainId == 1) {
+            // mainnet
+            strategyManager = 0x858646372CC42E1A627fcE94aa7A7033e7CF075A;
+            stETHStrategy = 0x93c4b944D05dfe6df7645A86cd2206016c51564D;
+            // TODO: NEED TO HAVE ETHX STRATEGY
+            ethXStrategy = 0x0000000000000000000000000000000000000000;
+        } else {
+            // testnet
+            strategyManager = 0x779d1b5315df083e3F9E94cB495983500bA8E907;
+            stETHStrategy = 0xB613E78E2068d7489bb66419fB1cfa11275d14da;
+            // TODO: NEED TO HAVE ETHX STRATEGY
+            ethXStrategy = 0x0000000000000000000000000000000000000000;
+        }
     }
 
-    function getPriceFeeds() private returns (address stETHPriceFeed, address rETHPriceFeed, address cbETHPriceFeed) {
+    function getPriceFeeds() private returns (address stETHPriceFeed, address ethxPriceFeed) {
         uint256 chainId = block.chainid;
 
         if (chainId == 1) {
             // mainnet
-            stETHPriceFeed = vm.envAddress("RETH_PRICE_FEED");
-            rETHPriceFeed = vm.envAddress("STETH_PRICE_FEED");
-            cbETHPriceFeed = vm.envAddress("CBTETH_PRICE_FEED");
+            stETHPriceFeed = 0x86392dC19c0b719886221c78AB11eb8Cf5c52812;
+            ethxPriceFeed = address(ethXPriceOracleProxy);
         } else {
             // testnet
             stETHPriceFeed = address(new MockPriceAggregator());
-            rETHPriceFeed = address(new MockPriceAggregator());
-            cbETHPriceFeed = address(new MockPriceAggregator());
+            ethxPriceFeed = address(ethXPriceOracleProxy);
         }
     }
 
     function setUpByAdmin() private {
-        (address stETH, address rETH, address cbETH) = getLSTs();
+        (address stETH, address ethx) = getLSTs();
         // ----------- callable by admin ----------------
 
         // add rsETH to LRT config
@@ -100,15 +106,14 @@ contract DeployLRT is Script {
         // add deposit pool to LRT config
         lrtConfigProxy.setContract(LRTConstants.LRT_DEPOSIT_POOL, address(lrtDepositPoolProxy));
         // call updateAssetStrategy for each asset in LRTConfig
-        (address strategyManager, address stETHStrategy, address rETHStrategy, address cbETHStrategy) =
-            getAssetStrategies();
+        (address strategyManager, address stETHStrategy, address ethXStrategy) = getAssetStrategies();
         lrtConfigProxy.setContract(LRTConstants.EIGEN_STRATEGY_MANAGER, strategyManager);
         lrtConfigProxy.updateAssetStrategy(stETH, stETHStrategy);
-        lrtConfigProxy.updateAssetStrategy(rETH, rETHStrategy);
-        lrtConfigProxy.updateAssetStrategy(cbETH, cbETHStrategy);
+        // TODO: NEED TO HAVE ETHX STRATEGY
+        // lrtConfigProxy.updateAssetStrategy(ethx, ethXStrategy);
 
         // grant MANAGER_ROLE to an address in LRTConfig
-        lrtConfigProxy.grantRole(LRTConstants.MANAGER, proxyAdminOwner); // TODO: change it later to a multisig
+        lrtConfigProxy.grantRole(LRTConstants.MANAGER, proxyAdminOwner);
         // add minter role to lrtDepositPool so it mints rsETH
         lrtConfigProxy.grantRole(LRTConstants.MINTER_ROLE, address(lrtDepositPoolProxy));
 
@@ -125,20 +130,17 @@ contract DeployLRT is Script {
     }
 
     function setUpByManager() private {
-        (address stETH, address rETH, address cbETH) = getLSTs();
+        (address stETH, address ethx) = getLSTs();
         // --------- callable by manager -----------
 
-        // Add chainlink oracles for supported assets in ChainlinkPriceOracle
-        (address stETHPriceFeed, address rETHPriceFeed, address cbETHPriceFeed) = getPriceFeeds();
+        (address stETHPriceFeed, address ethxPriceFeed) = getPriceFeeds();
 
+        // Add chainlink oracles for supported assets in ChainlinkPriceOracle
         chainlinkPriceOracleProxy.updatePriceFeedFor(stETH, stETHPriceFeed);
-        chainlinkPriceOracleProxy.updatePriceFeedFor(rETH, rETHPriceFeed);
-        chainlinkPriceOracleProxy.updatePriceFeedFor(cbETH, cbETHPriceFeed);
 
         // call updatePriceOracleFor for each asset in LRTOracle
         lrtOracleProxy.updatePriceOracleFor(address(stETH), address(chainlinkPriceOracleProxy));
-        lrtOracleProxy.updatePriceOracleFor(address(rETH), address(chainlinkPriceOracleProxy));
-        lrtOracleProxy.updatePriceOracleFor(address(cbETH), address(chainlinkPriceOracleProxy));
+        lrtOracleProxy.updatePriceOracleFor(address(ethx), address(ethxPriceFeed));
 
         // maxApproveToEigenStrategyManager in each NodeDelegator to transfer to strategy
         maxApproveToEigenStrategyManager(address(nodeDelegatorProxy1));
@@ -154,7 +156,11 @@ contract DeployLRT is Script {
         bytes32 salt = keccak256(abi.encodePacked("LRT-Stader-Labs"));
         proxyFactory = new ProxyFactory();
         proxyAdmin = new ProxyAdmin(); // msg.sender becomes the owner of ProxyAdmin
-        proxyAdminOwner = proxyAdmin.owner(); // TODO: change to multisig when deploying to production
+
+        // TODO: change to multisig when deploying to production
+        proxyAdminOwner = proxyAdmin.owner();
+        // TODO: check if this is the right amount
+        minAmountToDeposit = 0.001 ether;
 
         console.log("ProxyAdmin deployed at: ", address(proxyAdmin));
         console.log("Owner of ProxyAdmin: ", proxyAdminOwner);
@@ -165,6 +171,7 @@ contract DeployLRT is Script {
         address lrtDepositPoolImplementation = address(new LRTDepositPool());
         address lrtOracleImplementation = address(new LRTOracle());
         address chainlinkPriceOracleImplementation = address(new ChainlinkPriceOracle());
+        address ethxPriceOracleImplementation = address(new EthXPriceOracle());
         address nodeDelegatorImplementation = address(new NodeDelegator());
 
         console.log("-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=");
@@ -173,6 +180,7 @@ contract DeployLRT is Script {
         console.log("LRTDepositPool implementation deployed at: ", lrtDepositPoolImplementation);
         console.log("LRTOracle implementation deployed at: ", lrtOracleImplementation);
         console.log("ChainlinkPriceOracle implementation deployed at: ", chainlinkPriceOracleImplementation);
+        console.log("EthXPriceOracle implementation deployed at: ", ethxPriceOracleImplementation);
         console.log("NodeDelegator implementation deployed at: ", nodeDelegatorImplementation);
         console.log("-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=");
 
@@ -180,11 +188,11 @@ contract DeployLRT is Script {
         lrtConfigProxy = LRTConfig(proxyFactory.create(address(lrtConfigImplementation), address(proxyAdmin), salt));
 
         // set up LRTConfig init params
-        (address stETH, address rETH, address cbETH) = getLSTs();
+        (address stETH, address ethx) = getLSTs();
         address predictedRSETHAddress = proxyFactory.computeAddress(RSETHImplementation, address(proxyAdmin), salt);
         console.log("predictedRSETHAddress: ", predictedRSETHAddress);
         // init LRTConfig
-        lrtConfigProxy.initialize(proxyAdminOwner, stETH, rETH, cbETH, predictedRSETHAddress);
+        lrtConfigProxy.initialize(proxyAdminOwner, stETH, ethx, predictedRSETHAddress);
 
         RSETHProxy = RSETH(proxyFactory.create(address(RSETHImplementation), address(proxyAdmin), salt));
         // init RSETH
@@ -204,6 +212,20 @@ contract DeployLRT is Script {
         );
         // init ChainlinkPriceOracle
         chainlinkPriceOracleProxy.initialize(address(lrtConfigProxy));
+
+        ethXPriceOracleProxy =
+            EthXPriceOracle(proxyFactory.create(address(ethxPriceOracleImplementation), address(proxyAdmin), salt));
+
+        // init EthXPriceOracle
+        if (block.chainid == 1) {
+            address staderStakingPoolManager = 0xcf5EA1b38380f6aF39068375516Daf40Ed70D299;
+            // mainnet
+            ethXPriceOracleProxy.initialize(staderStakingPoolManager);
+        } else {
+            address staderStakingPoolManager = 0xd0e400Ec6Ed9C803A9D9D3a602494393E806F823;
+            // testnet
+            ethXPriceOracleProxy.initialize(staderStakingPoolManager);
+        }
 
         nodeDelegatorProxy1 =
             NodeDelegator(proxyFactory.create(address(nodeDelegatorImplementation), address(proxyAdmin), salt));
@@ -235,6 +257,7 @@ contract DeployLRT is Script {
         console.log("LRTDepositPool proxy deployed at: ", address(lrtDepositPoolProxy));
         console.log("LRTOracle proxy deployed at: ", address(lrtOracleProxy));
         console.log("ChainlinkPriceOracle proxy deployed at: ", address(chainlinkPriceOracleProxy));
+        console.log("EthXPriceOracle proxy deployed at: ", address(ethXPriceOracleProxy));
         console.log("NodeDelegator proxy 1 deployed at: ", address(nodeDelegatorProxy1));
         console.log("NodeDelegator proxy 2 deployed at: ", address(nodeDelegatorProxy2));
         console.log("NodeDelegator proxy 3 deployed at: ", address(nodeDelegatorProxy3));
