@@ -4,7 +4,7 @@ pragma solidity 0.8.21;
 
 import { LRTConfigTest, ILRTConfig, LRTConstants, UtilLib } from "./LRTConfigTest.t.sol";
 import { IStrategy } from "contracts/interfaces/IStrategy.sol";
-import { NodeDelegator } from "contracts/NodeDelegator.sol";
+import { NodeDelegator, INodeDelegator } from "contracts/NodeDelegator.sol";
 import { TransparentUpgradeableProxy } from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 import { ProxyAdmin } from "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
 import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
@@ -194,6 +194,14 @@ contract NodeDelegatorDepositAssetIntoStrategy is NodeDelegatorTest {
         vm.stopPrank();
     }
 
+    function test_RevertWhenAssetIsNotSupported() external {
+        address randomAddress = address(0x123);
+        vm.startPrank(manager);
+        vm.expectRevert(ILRTConfig.AssetNotSupported.selector);
+        nodeDel.depositAssetIntoStrategy(randomAddress);
+        vm.stopPrank();
+    }
+
     function test_RevertWhenCallerIsNotLRTManager() external {
         vm.startPrank(alice);
         vm.expectRevert(ILRTConfig.CallerNotLRTConfigManager.selector);
@@ -201,10 +209,14 @@ contract NodeDelegatorDepositAssetIntoStrategy is NodeDelegatorTest {
         vm.stopPrank();
     }
 
-    function test_RevertWhenAssetIsNotSupported() external {
+    function test_RevertWhenAnStrategyIsNotSetForAsset() external {
         address randomAddress = address(0x123);
+        uint256 depositLimit = 100 ether;
+        vm.prank(manager);
+        lrtConfig.addNewSupportedAsset(randomAddress, depositLimit);
+
         vm.startPrank(manager);
-        vm.expectRevert(ILRTConfig.AssetNotSupported.selector);
+        vm.expectRevert(INodeDelegator.StrategyIsNotSetForAsset.selector);
         nodeDel.depositAssetIntoStrategy(randomAddress);
         vm.stopPrank();
     }

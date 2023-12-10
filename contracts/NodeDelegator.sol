@@ -57,6 +57,10 @@ contract NodeDelegator is INodeDelegator, LRTConfigRoleChecker, PausableUpgradea
         onlyLRTManager
     {
         address strategy = lrtConfig.assetStrategy(asset);
+        if (strategy == address(0)) {
+            revert StrategyIsNotSetForAsset();
+        }
+
         IERC20 token = IERC20(asset);
         address eigenlayerStrategyManagerAddress = lrtConfig.getContract(LRTConstants.EIGEN_STRATEGY_MANAGER);
 
@@ -120,6 +124,10 @@ contract NodeDelegator is INodeDelegator, LRTConfigRoleChecker, PausableUpgradea
     /// @return stakedBalance the balance of the asset
     function getAssetBalance(address asset) external view override returns (uint256) {
         address strategy = lrtConfig.assetStrategy(asset);
+        if (strategy == address(0)) {
+            return 0;
+        }
+
         return IStrategy(strategy).userUnderlyingView(address(this));
     }
 

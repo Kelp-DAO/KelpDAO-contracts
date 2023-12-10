@@ -157,10 +157,8 @@ contract DeployLRT is Script {
         proxyFactory = new ProxyFactory();
         proxyAdmin = new ProxyAdmin(); // msg.sender becomes the owner of ProxyAdmin
 
-        // TODO: change to multisig when deploying to production
         proxyAdminOwner = proxyAdmin.owner();
-        // TODO: check if this is the right amount
-        minAmountToDeposit = 0.001 ether;
+        minAmountToDeposit = 0.0001 ether;
 
         console.log("ProxyAdmin deployed at: ", address(proxyAdmin));
         console.log("Owner of ProxyAdmin: ", proxyAdminOwner);
@@ -270,6 +268,15 @@ contract DeployLRT is Script {
 
         // update rsETHPrice
         lrtOracleProxy.updateRSETHPrice();
+
+        // TODO: Check for the correct multisig addresses
+        address manager = 0xFc015a866aA06dDcaD27Fe425bdd362a8927544D;
+        lrtConfigProxy.grantRole(LRTConstants.MANAGER, manager);
+        lrtConfigProxy.revokeRole(LRTConstants.MANAGER, proxyAdminOwner);
+        address admin = 0xA65E2f72930219C4ce846FB245Ae18700296C328;
+        lrtConfigProxy.grantRole(LRTConstants.DEFAULT_ADMIN_ROLE, admin);
+        lrtConfigProxy.revokeRole(LRTConstants.DEFAULT_ADMIN_ROLE, proxyAdminOwner);
+        proxyAdmin.transferOwnership(admin);
 
         vm.stopBroadcast();
     }
