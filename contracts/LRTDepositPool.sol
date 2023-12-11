@@ -56,6 +56,10 @@ contract LRTDepositPool is ILRTDepositPool, LRTConfigRoleChecker, PausableUpgrad
     /// @param asset Asset address
     /// @return currentLimit Current limit of asset deposit
     function getAssetCurrentLimit(address asset) public view override returns (uint256) {
+        if (getTotalAssetDeposits(asset) > lrtConfig.depositLimitByAsset(asset)) {
+            return 0;
+        }
+
         return lrtConfig.depositLimitByAsset(asset) - getTotalAssetDeposits(asset);
     }
 
