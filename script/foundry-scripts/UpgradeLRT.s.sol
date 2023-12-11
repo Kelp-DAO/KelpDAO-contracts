@@ -28,8 +28,8 @@ contract UpgradeLRT is Script {
             newImplementation = address(0);
         } else if (chainId == 5) {
             // goerli
-            proxyAdmin = ProxyAdmin(0x8F616f0994d2648AB34E6Bc676816031fBc9b4a2);
-            proxyAddress = 0xC1fDd637EcB96f0b84c8CD97e4386f1634f89b81; // example NodeDelegatorProxy1
+            proxyAdmin = ProxyAdmin(0x19b912EdE7056943B23d237752814438338A9666);
+            proxyAddress = 0x991837c651902661fa88B80791d58dF56FD0Dd92; // example NodeDelegatorProxy1
             newImplementation = address(new NodeDelegator());
         } else {
             revert("Unsupported network");
