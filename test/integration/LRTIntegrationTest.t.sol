@@ -118,10 +118,6 @@ contract LRTDepositPoolIntegrationTest is LRTIntegrationTest {
     }
 
     function test_DepositAssetETHXWorksWhenUsingTheCorrectConditions() external {
-        if (block.chainid == 5) {
-            // this test skipped in goerli as ETHX Eigenlayer strategy is not deployed yet
-            vm.skip(true);
-        }
         uint256 amountToDeposit = 2 ether;
 
         // ethXWhale balance of rsETH before deposit
@@ -258,17 +254,12 @@ contract LRTDepositPoolIntegrationTest is LRTIntegrationTest {
     }
 
     function test_TransferAssetETHXToNodeDelegatorWhenCalledbyManager() external {
-        if (block.chainid == 5) {
-            // this test skipped in goerli as ETHX Eigenlayer strategy is not deployed yet
-            vm.skip(true);
-        }
-
         uint256 amountToTransfer = 1e18;
 
         uint256 lrtDepositPoolBalanceBefore = ERC20(ethXAddress).balanceOf(address(lrtDepositPool));
         uint256 totalDepositsInethXBeforeDeposit = lrtDepositPool.getTotalAssetDeposits(ethXAddress);
 
-        vm.startPrank(stWhale);
+        vm.startPrank(ethXWhale);
         ERC20(ethXAddress).approve(address(lrtDepositPool), amountToTransfer);
         lrtDepositPool.depositAsset(ethXAddress, amountToTransfer, minAmountOfRSETHToReceive, referralId);
         vm.stopPrank();

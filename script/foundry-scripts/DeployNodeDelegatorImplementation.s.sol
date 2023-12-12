@@ -10,8 +10,11 @@ contract DeployNodeDelegatorImplementation is Script {
     NodeDelegator public nodeDelegatorImplementation;
 
     function run() external {
+        vm.startBroadcast();
         nodeDelegatorImplementation = new NodeDelegator();
 
         console.log("New NodeDelegator implementation deployed at: %s", address(nodeDelegatorImplementation));
+
+        vm.stopBroadcast();
     }
 }
