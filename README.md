@@ -138,38 +138,75 @@ $ npm test:coverage:report
 
 ### Goerli testnet
 
-| Contract Name           |  Address                                       |
+| Contract Name           | Address                                       |
 |-------------------------|------------------------------------------------|
 | ProxyFactory            | 0x4ae77FdfB3BBBe99598CAfaE4c369b604b6d9e02     |
-| ProxyAdmin              | 0x19b912EdE7056943B23d237752814438338A9666     |
-| ProxyAdmin Owner        | 0x64c6fBb54546d7014b5f89f0db4b40D58c20b1A4     |
+| ProxyAdmin              | 0xa6A6b35d84B20077c6f3d30b86547fF837260407     |
+| ProxyAdmin Owner        | 0x7AAd74b7f0d60D5867B59dbD377a71783425af47     |
 
 ### Contract Implementations
 | Contract Name           | Implementation Address                         |
 |-------------------------|------------------------------------------------|
-| LRTConfig               | 0x18B4d142fB3a0337C81a043bF3ceBC39F804BdF7     |
-| RSETH                   | 0x5646a74c7B4dB5841e6bDb03A3f9b1ea630DcCeb     |
-| LRTDepositPool          | 0xd37b982c54F493cE9D4dCa89a5EA3EA9051fC6bb     |
-| LRTOracle               | 0x0bE54b5232771cBab9CEDD789fc5d7695b67463f     |
-| ChainlinkPriceOracle    | 0x56e4DF8086a8DD8745cB64661D33F9310dA4AE50     |
-| EthXPriceOracle         | 0xEdF8112Ad1Aa7Ac6eb2ea994de8D01d72D01eA40     |
-| NodeDelegator           | 0xca7A74BD1f3726C1ce6158de8e745746a8e9396e     |
+| LRTConfig               | 0x673a669425457bCabeb247f56552A0Fd8141cee2     |
+| RSETH                   | 0xb61e0E39b6d4030C36A176f576aaBE44BF59Dc78     |
+| LRTDepositPool          | 0x8D9CD771c51b7F6217E0000c1C735F05aDbE6594     |
+| LRTOracle               | 0x8E2fe2f55f295F3f141213789796fa79E709eF23     |
+| ChainlinkPriceOracle    | 0x2Ad42D71f65F76860FCE2C39032dEf101422b3f7     |
+| EthXPriceOracle         | 0xf1BED40dbeE8FC0F324FA06322f2Bbd62d11c97d     |
+| NodeDelegator           | 0xD73Cd1aaE045653474B873f3275BA2BE2744c8B4     |
 
 ### Proxy Addresses
 | Contract Name           | Proxy Address                                  |
 |-------------------------|------------------------------------------------|
-| LRTConfig               | 0x3E8b8FE30260d202b92891ab38aE8493c8a0a412     |
-| RSETH                   | 0xdc862C46F67a8A7B6412D51D10E1F5e19f1bCb62     |
-| LRTDepositPool          | 0x8Ece5A05C62E548944C18504AFE424d0791c1684     |
-| LRTOracle               | 0x63F1Cff763Cf282a6CEB6Ba12dE781b79934770f     |
-| ChainlinkPriceOracle    | 0x33124283F0c9eef83A5bcd4bb22C23f05ABc7D1A     |
-| EthXPriceOracle         | 0x4978F66c51ADd2de0d49ce8Ec0e525E4f6B1Bef7     |
+| LRTConfig               | 0x6d7888Bc794C1104C64c28F4e849B7AE68231b6d     |
+| RSETH                   | 0xb4EA9175e99232560ac5dC2Bcbe4d7C833a15D56     |
+| LRTDepositPool          | 0xd51d846ba5032b9284b12850373ae2f053f977b3     |
+| LRTOracle               | 0xE92Ca437CA55AAbED0CBFFe398e384B997D4CCe9     |
+| ChainlinkPriceOracle    | 0x750604fAbF4828d1CaA19022238bc8C0DD6C50D5     |
+| EthXPriceOracle         | 0x6DA0235202D9443674abe6d0355AdD147B6396A2     |
 
 ### NodeDelegator Proxy Addresses
-- NodeDelegator proxy 1: 0x991837c651902661fa88B80791d58dF56FD0Dd92
-- NodeDelegator proxy 2: 0x4929afE2de8CF903dEFFd20e95651283673e47eE
-- NodeDelegator proxy 3: 0x9bD27cdc4844967E788958d4b0C60A5898c600E0
-- NodeDelegator proxy 4: 0xb3a9DFbCE51ad9Fbb7fAfC6209D1b4cDb6CBF150
-- NodeDelegator proxy 5: 0x2e9982418fAeF216d590356D60c008524Bc6dd03
+- NodeDelegator proxy 1: 0x560B95A0Ba942A7E15645F655731244680fA030B
+- NodeDelegator proxy 2: 0x32c1329fE006CDE9dac246293135E98e0070Afa0
+- NodeDelegator proxy 3: 0x5520e0ECE7a82a72325417732131dbeCe0b5F0Fb
+- NodeDelegator proxy 4: 0x385C2636bAe9145eb9A52a05A58f181440c2fcE3
+- NodeDelegator proxy 5: 0x8C58090994913Cb3cb017F544156d76F6c42F37c
+
+
+### ETH Mainnet
+
+| Contract Name           |  Address                                       |
+|-------------------------|------------------------------------------------|
+| ProxyFactory            | 0x673a669425457bCabeb247f56552A0Fd8141cee2     |
+| ProxyAdmin              | 0xb61e0E39b6d4030C36A176f576aaBE44BF59Dc78     |
+| ProxyAdmin Owner        | 0xb9577E83a6d9A6DE35047aa066E3758221FE0DA2     |
+
+### Contract Implementations
+| Contract Name           | Implementation Address                         |
+|-------------------------|------------------------------------------------|
+| LRTConfig               | 0x8D9CD771c51b7F6217E0000c1C735F05aDbE6594     |
+| RSETH                   | 0x8E2fe2f55f295F3f141213789796fa79E709eF23     |
+| LRTDepositPool          | 0x2Ad42D71f65F76860FCE2C39032dEf101422b3f7     |
+| LRTOracle               | 0xf1BED40dbeE8FC0F324FA06322f2Bbd62d11c97d     |
+| ChainlinkPriceOracle    | 0xD73Cd1aaE045653474B873f3275BA2BE2744c8B4     |
+| EthXPriceOracle         | 0x0379E85188BC416A1D43Ab04b28F38B5c63F129E     |
+| NodeDelegator           | 0xeD510dea149D14c1EB5f973004E0111afdb3B179     |
+
+### Proxy Addresses
+| Contract Name           | Proxy Address                                  |
+|-------------------------|------------------------------------------------|
+| LRTConfig               | 0x947Cb49334e6571ccBFEF1f1f1178d8469D65ec7     |
+| RSETH                   | 0xA1290d69c65A6Fe4DF752f95823fae25cB99e5A7     |
+| LRTDepositPool          | 0x036676389e48133B63a802f8635AD39E752D375D     |
+| LRTOracle               | 0x349A73444b1a310BAe67ef67973022020d70020d     |
+| ChainlinkPriceOracle    | 0x78C12ccE8346B936117655Dd3D70a2501Fd3d6e6     |
+| EthXPriceOracle         | 0x3D08ccb47ccCde84755924ED6B0642F9aB30dFd2     |
+
+### NodeDelegator Proxy Addresses
+- NodeDelegator proxy 1: 0x07b96Cf1183C9BFf2E43Acf0E547a8c4E4429473
+- NodeDelegator proxy 2: 0x429554411C8f0ACEEC899100D3aacCF2707748b3
+- NodeDelegator proxy 3: 0x92B4f5b9ffa1b5DB3b976E89A75E87B332E6e388
+- NodeDelegator proxy 4: 0x9d2Fc9287e1c3A1A814382B40AAB13873031C4ad
+- NodeDelegator proxy 5: 0xe8038228ff1aEfD007D7A22C9f08DDaadF8374E4
 
 
